@@ -1,0 +1,396 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum Role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────
+// USER
+// id = Clerk user ID string — NOT a generated cuid.
+// This table is a mirror of Clerk, synced via webhooks.
+// Clerk owns identity. This table owns app-level relations.
+// ─────────────────────────────────────────
+
+model User {
+  id        String   @id
+  email     String   @unique
+  name      String
+  phone     String   @unique
+  role      Role     @default(USER)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses     Address[]
+  orders        Order[]
+  reviews       Review[]
+  cart          Cart?
+  wishlist      UserWishlist[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────
+// ADDRESS
+// ─────────────────────────────────────────
+
+model Address {
+  id           String  @id @default(cuid())
+  alias        String
+  country      String
+  governorate  String
+  city         String
+  area         String
+  phone        String
+  addressLine1 String 
+  details      String
+  postalCode   Int?    
+  latitude     Float?
+  longitude    Float?
+  isDefault    Boolean @default(false)
+
+  userId String 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("addresses")
+}
+
+// ─────────────────────────────────────────
+// CATEGORY & SUB-CATEGORY
+// ─────────────────────────────────────────
+
+model Category {
+  id            String        @id @default(cuid())
+  name          String        @unique
+  slug          String        @unique
+  imageId       String?
+  imageUrl      String?
+  subCategories SubCategory[]
+  products      Product[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id         String               @id @default(cuid())
+  name       String               @unique
+  slug       String               @unique
+  categoryId String              
+  category   Category             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  products   ProductSubCategory[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@map("subCategories")
+}
+
+// ─────────────────────────────────────────
+// PRODUCT
+// ─────────────────────────────────────────
+
+model Product {
+  id                 String        @id @default(cuid())
+  name               String
+  slug               String        @unique
+  description        String
+  quantity           Int
+  sold               Int           @default(0)
+  price              Decimal       @db.Decimal(10, 2)
+  discount           Decimal       @default(0) @db.Decimal(5, 2)
+  priceAfterDiscount Decimal       @default(0) @db.Decimal(10, 2) 
+  sizes              String[]
+  colors             String[]
+  imageId            String       
+  imageUrl           String
+  ratingsAverage     Decimal?      @db.Decimal(2, 1) 
+  ratingsQuantity    Int           @default(0) 
+  status             ProductStatus @default(DRAFT)
+  featured           Boolean       @default(false)
+
+  categoryId String  
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  images        ProductImage[]
+  subCategories ProductSubCategory[]
+  reviews       Review[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  wishlistedBy  UserWishlist[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  imageId   String? 
+  imageUrl  String? 
+  sortOrder Int     @default(0) 
+
+  productId String 
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("productImages")
+}
+
+// Product ↔ SubCategory (many-to-many)
+model ProductSubCategory {
+  productId     String      
+  subCategoryId String      
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, subCategoryId])
+  @@map("productSubCategories")
+}
+
+// ─────────────────────────────────────────
+// WISHLIST (User ↔ Product many-to-many)
+// ─────────────────────────────────────────
+
+model UserWishlist {
+  userId    String  
+  productId String  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  addedAt   DateTime @default(now())
+
+  @@id([userId, productId])
+}
+
+// ─────────────────────────────────────────
+// REVIEW
+// One review per user per product — enforced by @@unique.
+// ratingsAverage / ratingsQuantity on Product are recomputed
+// in reviews.service.ts after every insert / update / delete.
+// ─────────────────────────────────────────
+
+model Review {
+  id      String  @id @default(cuid())
+  title   String  @default("")
+  ratings Decimal @db.Decimal(2, 1)
+
+  userId String 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String 
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@map("reviews")
+}
+
+// ─────────────────────────────────────────
+// CART
+// Registered:  userId set, sessionToken null, no expiry
+// Anonymous:   userId null, sessionToken set (cookie), expiresAt set (7 days)
+// ─────────────────────────────────────────
+
+model Cart {
+  id                      String    @id @default(cuid())
+  totalCartPrice          Decimal?  @db.Decimal(10, 2) 
+  totalPriceAfterDiscount Decimal?  @db.Decimal(10, 2) 
+  expiresAt               DateTime? 
+
+  userId       String? @unique 
+  user         User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String? @unique 
+
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id       String   @id @default(cuid())
+  quantity Int      @default(1)
+  color    String?
+  size     String?
+  price    Decimal? @db.Decimal(10, 2) // price snapshot at time of adding
+
+  cartId String 
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId String 
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("cartItems")
+}
+
+// ─────────────────────────────────────────
+// COUPON
+// discount = percentage (1–70)
+// maxUsage = 0 means unlimited
+// ─────────────────────────────────────────
+
+model Coupon {
+  id        String   @id @default(cuid())
+  name      String   @unique // uppercase e.g. "SAVE20"
+  discount  Decimal  @db.Decimal(5, 2)
+  usedCount Int      @default(0)
+  maxUsage  Int      @default(0)
+  expire    DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("coupons")
+}
+
+// ─────────────────────────────────────────
+// ORDER
+//
+// Registered checkout:
+//   userId set, shippingAddressId set. All anon_* fields null.
+//
+// Anonymous checkout:
+//   userId null, shippingAddressId null.
+//   anonName / anonPhone / anonEmail set (contact info).
+//   anonCountry / anonCity / ... set (shipping info).
+//   guestToken set — sent in confirmation email for order claiming.
+//
+// CARD: stripePaymentIntentId set, isPaid flipped by Stripe webhook.
+// CASH: stripePaymentIntentId null, isPaid flipped manually by admin.
+// ─────────────────────────────────────────
+
+model Order {
+  id              String        @id @default(cuid())
+  humanOrderId    String        @unique // ORD-000001
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   PaymentMethod @default(CASH) 
+  shippingFees    Decimal       @default(0) @db.Decimal(10, 2) 
+  totalOrderPrice Decimal?      @db.Decimal(10, 2) 
+  isPaid          Boolean       @default(false) 
+  paidAt          DateTime?     
+  isDelivered     Boolean       @default(false) 
+  deliveredAt     DateTime?     
+  notes           String?
+
+  stripePaymentIntentId String? @unique 
+
+  // Registered user
+  userId            String? 
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  shippingAddressId String? 
+  shippingAddress   Address? @relation(fields: [shippingAddressId], references: [id], onDelete: SetNull)
+
+  // Coupon
+  couponId        String? 
+  coupon          Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  discountApplied Decimal? @db.Decimal(10, 2) 
+
+  // Anonymous contact
+  anonName  String? 
+  anonPhone String? 
+  anonEmail String? @map("anon_email")
+
+  // Anonymous shipping address
+  anonCountry       String? 
+  anonGovernorate   String? 
+  anonCity          String? 
+  anonArea          String? 
+  anonShippingPhone String? 
+  anonAddressLine1  String? 
+  anonDetails       String? 
+  anonPostalCode    Int?    
+  anonLatitude      Float?  
+  anonLongitude     Float?  
+
+  // Guest order claiming
+  guestToken          String?   @unique 
+  guestTokenExpiresAt DateTime? 
+  claimedByUserId     String?   
+
+  items     OrderItem[]
+  createdAt DateTime    @default(now()) 
+  updatedAt DateTime    @updatedAt 
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id       String   @id @default(cuid())
+  quantity Int      @default(1)
+  color    String?
+  size     String?
+  price    Decimal? @db.Decimal(10, 2) // price snapshot at time of order
+
+  orderId String 
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String 
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("orderItems")
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────
+
+model Notification {
+  id       String  @id @default(cuid())
+  type     String // "ORDER_SHIPPED" | "ORDER_DELIVERED" | "PROMO" etc.
+  title    String
+  body     String
+  read     Boolean @default(false)
+  metadata Json?
+
+  userId String 
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) 
+
+  @@index([userId, read])
+  @@map("notifications")
+}
