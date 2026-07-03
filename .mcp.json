@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "Prisma": {
+      "url": "https://mcp.prisma.io/mcp"
+    },
+    "clerk": {
+      "url": "https://mcp.clerk.com/mcp"
+    }
+  }
+}
