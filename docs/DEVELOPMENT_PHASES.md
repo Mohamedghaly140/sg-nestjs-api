@@ -1,6 +1,6 @@
 # SG Couture — Development Phases
 
-> **Status:** Living document · **Last updated:** 2026-07-03
+> **Status:** Living document · **Last updated:** 2026-07-05
 >
 > 🤖 **Claude Code:** read this file **first** on every task. Work only within the active phase unless told otherwise. Update statuses and checklists immediately after completing work.
 
@@ -8,7 +8,7 @@
 
 **Current state:** Fresh project. Nothing implemented. Active phase: **Phase 0**.
 
-**Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
+**Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
 ---
 
@@ -23,12 +23,13 @@
 - [ ] `PrismaModule` + provided schema + **Migration 001** ([DATABASE.md §4](./DATABASE.md#4-required-schema-changes-migration-001--before-phase-67): Geidea fields, Coupon.perUserLimit + CouponUsage, ShippingZone, order sequence, extra indexes)
 - [ ] Global prefix `/api` + URI versioning `v1`; helmet; CORS allow-list from env
 - [ ] Global ValidationPipe, ResponseEnvelopeInterceptor, PrismaExceptionFilter, AllExceptionsFilter, error-code constants
+- [ ] `SwaggerModule` setup in `src/main.ts` (`@nestjs/swagger`, already installed) — OpenAPI doc + Swagger UI served at `/api/docs`; Bearer auth scheme registered
 - [ ] Pino structured logging with request ids
 - [ ] `@nestjs/throttler` global default (100 req/min/IP)
 - [ ] HealthModule (`GET /api/v1/health`, Terminus + Prisma ping)
 - [ ] `prisma/seed.ts` (dev data), npm scripts, README quick start
 
-**Acceptance criteria:** app boots with validated env; `/health` returns envelope; a deliberately bad DTO on a sample route returns the documented 422 shape; migrations apply cleanly on an empty DB.
+**Acceptance criteria:** app boots with validated env; `/health` returns envelope; a deliberately bad DTO on a sample route returns the documented 422 shape; migrations apply cleanly on an empty DB; Swagger UI serves the OpenAPI spec at `/api/docs`.
 
 ---
 
@@ -184,7 +185,7 @@
 
 **Phase 10 (ADMIN):** overview endpoint(s) — revenue by period (paid orders), orders by status, top sellers, low stock, new customers. Acceptance: numbers reconcile with seeded fixtures; MANAGER gets 403.
 
-**Phase 11:** stricter per-route throttles (checkout, coupon validate, webhooks); security review pass ([CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security)); load test on checkout concurrency; coverage targets met (services ≥ 80%, money paths ≥ 95%); deployment config + runbook; final docs audit. Acceptance: launch checklist signed off.
+**Phase 11:** stricter per-route throttles (checkout, coupon validate, webhooks); security review pass ([CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security)); load test on checkout concurrency; coverage targets met (services ≥ 80%, money paths ≥ 95%); deployment config + runbook; final docs audit (incl. OpenAPI spec complete and accurate for all endpoints). Acceptance: launch checklist signed off.
 
 ---
 

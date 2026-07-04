@@ -1,6 +1,6 @@
 # SG Couture — Architecture
 
-> **Status:** Living document · **Last updated:** 2026-07-03 · **Related:** [CODING_STANDARDS.md](./CODING_STANDARDS.md), [DATABASE.md](./DATABASE.md), [ADR/](./ADR/)
+> **Status:** Living document · **Last updated:** 2026-07-05 · **Related:** [CODING_STANDARDS.md](./CODING_STANDARDS.md), [DATABASE.md](./DATABASE.md), [ADR/](./ADR/)
 
 ## 1. Technology Stack & Rationale
 
@@ -14,6 +14,7 @@
 | **Cloudinary** | Asset storage | Product/category images, invoices; `imageId` = public_id enables deletes/transforms |
 | **Resend** | Transactional email | Order confirmations, guest claim links |
 | **class-validator + class-transformer** | Validation | DTO-level declarative validation via global `ValidationPipe` |
+| **@nestjs/swagger** | API documentation | OpenAPI generation from controller/DTO decorators; Swagger UI served at `/api/docs`; every endpoint documented per [CODING_STANDARDS.md §9](./CODING_STANDARDS.md#9-api-documentation-swagger--openapi) |
 | **@nestjs/throttler** | Rate limiting | Protects public endpoints (checkout, coupon validation, webhooks) |
 | **@nestjs/schedule** | Cron jobs | Expired-cart purge, unpaid-CARD-order expiry, guest-token cleanup |
 | **Pino (nestjs-pino)** | Logging | Structured JSON logs, request correlation |
@@ -49,6 +50,7 @@ HTTP Request
 
 ### Controllers
 - Declare routes, apply guards/decorators, receive validated DTOs, delegate to a single service call, return plain data (envelope is applied by the interceptor).
+- Carry the Swagger route decorators (`@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiBearerAuth`) — see CODING_STANDARDS.md §9.
 - No business logic, no Prisma, no try/catch (filters handle errors).
 
 ### Services
@@ -82,6 +84,7 @@ HTTP Request
 
 ### DTOs
 - Every request body/query has a DTO class in the module's `dto/` folder. Response shapes use entity classes with `@Exclude/@Expose` where field-stripping matters. See CODING_STANDARDS.md.
+- Every DTO property carries `@ApiProperty`/`@ApiPropertyOptional` in agreement with its class-validator rules (CODING_STANDARDS.md §9).
 
 ## 4. Modules
 
@@ -120,7 +123,7 @@ sg-couture-backend/
 │   └── seed.ts                   # Dev seed (categories, products, admin user)
 ├── generated/prisma/             # Generated Prisma client (gitignored)
 ├── src/
-│   ├── main.ts                   # bootstrap: prefix, versioning, pipes, cors, helmet
+│   ├── main.ts                   # bootstrap: prefix, versioning, pipes, cors, helmet, swagger (/api/docs)
 │   ├── app.module.ts
 │   ├── config/                   # env validation schema + typed config namespaces
 │   │   ├── configuration.ts

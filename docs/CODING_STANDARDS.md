@@ -1,6 +1,6 @@
 # SG Couture — Coding Standards
 
-> **Status:** Living document · **Last updated:** 2026-07-03 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing.
+> **Status:** Living document · **Last updated:** 2026-07-05 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing, API documentation (Swagger).
 
 ## 1. Naming Conventions
 
@@ -54,6 +54,7 @@ Pagination meta (always this shape):
 - One DTO class per body/query; `class-validator` decorators; `PartialType` for updates; never reuse entity classes as DTOs.
 - Global pipe: `whitelist: true, forbidNonWhitelisted: true, transform: true` → unknown fields are 422s, not silently dropped surprises.
 - Validation failures → **422** `VALIDATION_ERROR` with `errors: [{ field, constraints }]`.
+- Every DTO property also carries `@ApiProperty({ description, example })` (or `@ApiPropertyOptional`) consistent with its class-validator decorators — see §9 API Documentation. Use `PartialType`/`PickType`/`OmitType` from **`@nestjs/swagger`** (not `@nestjs/mapped-types`) so derived DTOs keep their Swagger metadata.
 
 **Canonical rules (reuse via shared decorators in `common/validators/`):**
 
@@ -142,3 +143,22 @@ All validated in `config/env.validation.ts`; boot fails on any missing/invalid v
 - **E2E (supertest):** per-endpoint happy path + documented error codes; webhook flows with signed fixture payloads; cart merge scenarios; the Phase-6 concurrency acceptance test.
 - **Mocking:** external services (Clerk API, Geidea, Cloudinary, Resend) behind injectable services — mocked in tests, never called.
 - **Coverage:** services ≥ 80%; money paths (checkout, payments, coupons, stock) ≥ 95%.
+
+## 9. API Documentation (Swagger / OpenAPI)
+
+Every completed endpoint is documented in Swagger via `@nestjs/swagger` **in the same task that implements it** — use the **`nestjs-swagger` skill** to apply and verify the decorators. The OpenAPI doc is built by `SwaggerModule` in `src/main.ts` and served at **`/api/docs`** (Phase 0 setup).
+
+**Controller conventions**
+
+- `@ApiTags('<resource>')` on every controller (one tag per resource; admin controllers use e.g. `admin/orders`).
+- `@ApiOperation({ summary })` on every handler — short, verb-first, matching the endpoint's description in `API_SPECIFICATION.md`.
+- `@ApiResponse` for the success status **and** each endpoint-specific error code documented in `API_SPECIFICATION.md` (common errors — 401/403/404/422/429/500 — are registered globally, not repeated per handler).
+- `@ApiBearerAuth()` on protected routes (`User`/`Manager+`/`Admin` auth levels); `@ApiParam`/`@ApiQuery` where path/query params exist.
+
+**DTO conventions**
+
+- `@ApiProperty({ description, example })` on every property; `@ApiPropertyOptional` for optional ones.
+- Swagger metadata must agree with the class-validator rules (same constraints, enums via `enum:`, defaults via `default:`).
+- Derived DTOs use `PartialType`/`PickType`/`OmitType` from `@nestjs/swagger` so metadata is inherited.
+
+**Definition of Done:** the endpoint renders correctly in the Swagger UI at `/api/docs` — right tag, auth padlock where protected, request/response schemas complete. This is part of the mandatory post-task checklist in `CLAUDE.md`.

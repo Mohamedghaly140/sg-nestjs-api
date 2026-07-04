@@ -26,6 +26,7 @@ Validation: <specific rules>
 Success (2xx): <json shape>
 Errors: <endpoint-specific only>
 Notes: <side effects, idempotency, events>
+Swagger: <@ApiOperation summary · @ApiResponse codes · DTO @ApiProperty complete>
 ```
 
 - **Auth legend:** `Public` · `Optional` (guest or user) · `User` (Clerk JWT) · `Manager+` · `Admin`.
@@ -75,6 +76,7 @@ Pagination `meta` is always this shape: `{ "page": 1, "limit": 20, "totalItems":
 2. Write or extend the DTO(s) in the owning module's `dto/` folder.
 3. Write the controller method (routing/I-O only, correct guard/auth decorator for the endpoint's Auth level).
 4. Write the service method (business logic, transaction if money/stock is involved, throws typed errors).
-5. Add or update the entry in `docs/API_SPECIFICATION.md`'s correct numbered section, using the template verbatim.
-6. Add unit tests for the service and an e2e happy-path test per `CODING_STANDARDS.md` §8 (money paths need ≥95% coverage).
-7. Run the `task-close` skill before declaring the task done.
+5. Document the endpoint in Swagger with the `nestjs-swagger` skill: `@ApiTags` on the controller, `@ApiOperation` + `@ApiResponse` on the handler, `@ApiBearerAuth()` on protected routes, `@ApiProperty` on every DTO property (matching its class-validator rules).
+6. Add or update the entry in `docs/API_SPECIFICATION.md`'s correct numbered section, using the template verbatim.
+7. Add unit tests for the service and an e2e happy-path test per `CODING_STANDARDS.md` §8 (money paths need ≥95% coverage).
+8. Run the `task-close` skill before declaring the task done.

@@ -1,8 +1,8 @@
 # SG Couture — API Specification
 
-> **Status:** Living document · **Last updated:** 2026-07-03 · **Base URL:** `/api/v1` · **Related:** [FEATURES.md](./FEATURES.md) (business rules), [CODING_STANDARDS.md](./CODING_STANDARDS.md) (envelope, validation, error codes)
+> **Status:** Living document · **Last updated:** 2026-07-05 · **Base URL:** `/api/v1` · **Related:** [FEATURES.md](./FEATURES.md) (business rules), [CODING_STANDARDS.md](./CODING_STANDARDS.md) (envelope, validation, error codes)
 >
-> 🤖 **Claude Code:** every new/changed endpoint MUST be documented here using the template below, in the correct section, before the task is considered done.
+> 🤖 **Claude Code:** every new/changed endpoint MUST be documented here using the template below, in the correct section, before the task is considered done — **and** MUST carry `@nestjs/swagger` decorators in code (`@ApiTags`/`@ApiOperation`/`@ApiResponse` on the controller, `@ApiProperty` on DTOs), applied via the `nestjs-swagger` skill, so it appears in the Swagger UI at `/api/docs`.
 
 ## 0. Conventions & Endpoint Template
 
@@ -23,6 +23,7 @@ Validation: <specific rules>
 Success (2xx): <json shape>
 Errors: <endpoint-specific only>
 Notes: <side effects, idempotency, events>
+Swagger: <@ApiOperation summary · @ApiResponse codes · DTO @ApiProperty complete>
 ```
 
 ---
