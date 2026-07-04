@@ -6,20 +6,20 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** Fresh project. Nothing implemented. Active phase: **Phase 0**.
+**Current state:** Active phase: **Phase 0** (in progress — dependencies installed, `ConfigModule` with fail-fast env validation done; PrismaModule/migration, bootstrap wiring, interceptors/filters, and HealthModule still outstanding).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
 ---
 
-## Phase 0 — Project Foundation ⬜
+## Phase 0 — Project Foundation 🟨
 
 **Purpose:** a running skeleton every later phase plugs into.
 **Dependencies:** none.
 
 **Features / tasks**
 - [ ] NestJS scaffold, strict TS config, ESLint + Prettier
-- [ ] `ConfigModule` with env validation (fail-fast on boot) — full list in [CODING_STANDARDS.md §Environment Variables](./CODING_STANDARDS.md#environment-variables)
+- [x] `ConfigModule` with env validation (fail-fast on boot) — full list in [CODING_STANDARDS.md §Environment Variables](./CODING_STANDARDS.md#environment-variables). Required now: `NODE_ENV`, `PORT`, `DATABASE_URL`, `CORS_ORIGINS`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`; other vars typed/defaulted but optional until their phase lands.
 - [ ] `PrismaModule` + provided schema + **Migration 001** ([DATABASE.md §4](./DATABASE.md#4-required-schema-changes-migration-001--before-phase-67): Geidea fields, Coupon.perUserLimit + CouponUsage, ShippingZone, order sequence, extra indexes)
 - [ ] Global prefix `/api` + URI versioning `v1`; helmet; CORS allow-list from env
 - [ ] Global ValidationPipe, ResponseEnvelopeInterceptor, PrismaExceptionFilter, AllExceptionsFilter, error-code constants

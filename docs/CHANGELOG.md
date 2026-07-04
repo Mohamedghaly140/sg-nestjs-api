@@ -2,6 +2,16 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-05 — Phase 0 · dependencies + ConfigModule with fail-fast env validation
+
+- Installed Phase 0 dependencies in one pass: `@nestjs/config`, `helmet`, `@nestjs/throttler`, `@nestjs/terminus`, `class-validator`, `class-transformer`, `nestjs-pino` + `pino-http` + `pino`, `@prisma/adapter-pg` + `pg` (dependencies); `prisma`, `@types/pg`, `pino-pretty` (devDependencies). `@prisma/client` deliberately **not** installed — `prisma/schema.prisma` uses the new `provider = "prisma-client"` generator with custom `output`, which is self-contained and driver-adapter based; revisit at the PrismaModule step per the `prisma-driver-adapter-implementation` skill.
+- Added `src/config/env.validation.ts` (`class-validator` + `validateSync`, standard Nest recipe) and `src/config/configuration.ts` (`registerAs` namespaces: app, database, cors, clerk, geidea, cloudinary, mail, cart), wired via `ConfigModule.forRoot({ isGlobal: true, load, validate, cache: true })` in `src/app.module.ts`.
+- Required-at-boot vars (fail-fast): `NODE_ENV`, `PORT`, `DATABASE_URL`, `CORS_ORIGINS`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`. All other documented vars (Geidea, Cloudinary, Resend/mail, cart/order TTLs) are typed with defaults but optional for now — promoted to required when their owning phase's module is built.
+- `.env`: added `NODE_ENV`, `CORS_ORIGINS`; renamed `CLERK_WEBHOOK_SIGNING_SECRET` → `CLERK_WEBHOOK_SECRET` to match `CODING_STANDARDS.md` §7.
+- Added `src/config/env.validation.spec.ts` (unit tests: missing required var throws, invalid enum throws, defaults populate correctly).
+- Verified: `pnpm build`/`pnpm lint`/`pnpm test` pass; app boots cleanly with valid env; boots fail with a clear `Environment validation failed` message and non-zero exit when a required var is missing or invalid (`CORS_ORIGINS=`, `NODE_ENV=bogus` tested).
+- `DEVELOPMENT_PHASES.md`: checked off the `ConfigModule` env-validation line under Phase 0 (Phase 0 remains "In Progress" — PrismaModule, bootstrap wiring, interceptors/filters, HealthModule still outstanding).
+
 ## 2026-07-05 — docs · Swagger documentation made a mandatory per-endpoint step
 
 - New process rule: after every endpoint is completed, it must be documented in Swagger/OpenAPI with `@nestjs/swagger` decorators (`@ApiTags`/`@ApiOperation`/`@ApiResponse` on controllers, `@ApiProperty` on DTOs), applied via the `nestjs-swagger` skill, **in the same task**.
