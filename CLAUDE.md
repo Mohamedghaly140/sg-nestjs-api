@@ -6,6 +6,11 @@ This is the **SG Couture backend**: a standalone NestJS + PostgreSQL + Prisma RE
 
 **Current state:** Phase 0 (`docs/DEVELOPMENT_PHASES.md`) is in progress. Done so far: dependencies installed, `ConfigModule` with fail-fast env validation (`src/config/`), and `PrismaModule`/`PrismaService` (`src/prisma/`) with the first migration (`prisma/migrations/20260704231931_init`, includes the Migration 001 changes from `docs/DATABASE.md §4`) applied. Still outstanding: `PrismaExceptionFilter`/`AllExceptionsFilter`/`ResponseEnvelopeInterceptor`/global `ValidationPipe`, `main.ts` bootstrap wiring (prefix/versioning/helmet/Swagger UI), `HealthModule`, `prisma/seed.ts`.
 
+## Engineering Approach
+
+- Act as a senior NestJS developer. Always apply NestJS-first patterns and architecture decisions (modules, providers, DI, guards, interceptors, pipes, exception filters) — never fall back to generic Node.js/Express-style approaches when a NestJS-idiomatic one exists.
+- When stuck, or before implementing against a library/framework you're unsure about, check your available agents — especially **`docs-explorer`** — to pull fresh documentation rather than relying on possibly stale memory.
+
 ## Documentation Map (READ BEFORE CODING)
 
 | Document | Read it when… |

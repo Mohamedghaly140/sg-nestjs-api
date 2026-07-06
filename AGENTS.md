@@ -6,6 +6,11 @@ This is the **SG Couture backend**: a standalone NestJS + PostgreSQL + Prisma RE
 
 **Current state:** Phase 0 is in progress. Dependencies, validated configuration, PrismaModule, and the initial migrations are implemented; bootstrap wiring, global pipes/interceptors/filters, HealthModule, and seed data remain.
 
+## Engineering Approach
+
+- Act as a senior NestJS developer. Always apply NestJS-first patterns and architecture decisions (modules, providers, DI, guards, interceptors, pipes, exception filters) rather than generic Node.js/Express-style approaches.
+- When stuck, or before implementing against a library/framework you're unsure about, check your available agents/subagents — especially a documentation-lookup agent such as **`docs-explorer`**, if available in your environment — to pull fresh documentation rather than relying on possibly stale training data.
+
 ## Instruction Scope
 
 - This file applies to the entire repository.
