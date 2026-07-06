@@ -6,13 +6,13 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** Active phase: **Phase 0** (in progress — application bootstrap, the HTTP-layer skeleton, validated `ConfigModule`, hardened PrismaModule/migrations, and HealthModule are done; seed data and quick-start documentation remain outstanding).
+**Current state:** **Phase 0 is complete.** Active phase: **Phase 1** (Identity Sync & Authorization).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
 ---
 
-## Phase 0 — Project Foundation 🟨
+## Phase 0 — Project Foundation ✅
 
 **Purpose:** a running skeleton every later phase plugs into.
 **Dependencies:** none.
@@ -28,7 +28,7 @@
 - [x] Pino structured logging with request ids
 - [x] `@nestjs/throttler` global default (100 req/min/IP)
 - [x] HealthModule (`GET /api/v1/health`, Terminus + Prisma ping)
-- [ ] `prisma/seed.ts` (dev data), npm scripts, README quick start
+- [x] `prisma/seed.ts` (dev data), npm scripts, README quick start
 
 **Acceptance criteria:** app boots with validated env; `/health` returns envelope; a deliberately bad DTO on a sample route returns the documented 422 shape; migrations apply cleanly on an empty DB; Swagger UI serves the OpenAPI spec at `/api/docs`.
 
@@ -194,7 +194,7 @@
 
 > 🤖 Claude Code: tick items and update phase statuses above **in the same task** that completes them.
 
-- [ ] Phase 0 — Foundation
+- [x] Phase 0 — Foundation
 - [ ] Phase 1 — Identity & Authorization (Clerk)
 - [ ] Phase 2 — Catalog
 - [ ] Phase 3 — Reviews & Wishlist

@@ -257,3 +257,11 @@ Existing: uniques on slugs/emails/tokens, `@@index([userId, read])` on notificat
 3. **Address snapshot on registered orders:** orders reference `Address` rows (SetNull); if a user edits an address after ordering, the order displays the edited address. Shopify snapshots addresses. *(Recommended future change: copy address fields onto the order at checkout.)*
 4. **Refund money movement:** status REFUNDED currently does not trigger an automatic Geidea refund API call; refunds are executed in the Geidea dashboard and then reflected by ADMIN setting status = REFUNDED. Automating via Geidea refund API is a Future Enhancement.
 5. **Cart item price snapshot (`CartItem.price`)** is informational only; totals and checkout always use live product prices. Confirm no "price changed since you added" UX is needed at MVP.
+
+## 8. Database Security (Row Level Security)
+
+The Supabase Postgres project backing this database auto-exposes every table in the `public` schema through PostgREST as the `anon`/`authenticated` roles. This backend never uses those roles or the Supabase client SDK — it connects directly via `@prisma/adapter-pg` (`DATABASE_URL`/`DIRECT_URL`) as the table-owning `postgres` role, which bypasses Row Level Security entirely regardless of policies.
+
+RLS is enabled with **no policies** on every `public` table, including Prisma's own `_prisma_migrations` bookkeeping table (`prisma/migrations/20260706143950_enable_row_level_security` for the app tables; `_prisma_migrations` is handled by the follow-up `prisma/migrations/20260706153859_enable_rls_prisma_migrations_table`, using `ALTER TABLE IF EXISTS` since that table doesn't exist yet when Prisma replays migrations against its shadow database). With RLS enabled and no policies, every table is default-deny for `anon`/`authenticated` — this is intentional defense-in-depth, not a placeholder for policies to come.
+
+Policies only ever matter for the **anon/publishable** key — if that key is ever used client-side (it currently is not; Clerk owns identity and this API owns all data access), add explicit policies then, don't disable RLS to work around it. The **service-role/secret** key is a different matter: it is designed to bypass RLS entirely, so no policy can ever constrain it — it must never be exposed client-side or committed anywhere, full stop, regardless of RLS/policy state.

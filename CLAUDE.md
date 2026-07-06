@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **SG Couture backend**: a standalone NestJS + PostgreSQL + Prisma REST API serving the SG Couture e-commerce storefront (web + future React Native mobile app) and admin dashboard.
 
-**Current state:** Phase 0 (`docs/DEVELOPMENT_PHASES.md`) is in progress. Done so far: dependencies installed, `ConfigModule` with fail-fast env validation (`src/config/`), and `PrismaModule`/`PrismaService` (`src/prisma/`) with the first migration (`prisma/migrations/20260704231931_init`, includes the Migration 001 changes from `docs/DATABASE.md §4`) applied. Still outstanding: `PrismaExceptionFilter`/`AllExceptionsFilter`/`ResponseEnvelopeInterceptor`/global `ValidationPipe`, `main.ts` bootstrap wiring (prefix/versioning/helmet/Swagger UI), `HealthModule`, `prisma/seed.ts`.
+**Current state:** Phase 0 (`docs/DEVELOPMENT_PHASES.md`) is complete. Active phase: **Phase 1 — Identity Sync & Authorization (Clerk)**.
 
 ## Engineering Approach
 

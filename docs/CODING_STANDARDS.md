@@ -111,6 +111,7 @@ Prisma mapping (in `PrismaExceptionFilter`): `P2002`→409, `P2025`→404, `P200
 - **Sensitive data:** guest tokens are single-purpose, expiring, and never logged; PII limited to what commerce requires.
 - **Secrets:** env only, validated at boot, never committed; separate sandbox/production Geidea + Clerk instances.
 - **Helmet** on, `x-powered-by` off.
+- **Database (Row Level Security):** all `public` schema tables have RLS enabled with no policies (default-deny for Supabase's `anon`/`authenticated` PostgREST roles); this backend connects as the table-owning `postgres` role, which bypasses RLS. See `DATABASE.md §8`.
 
 ## 7. Environment Variables
 

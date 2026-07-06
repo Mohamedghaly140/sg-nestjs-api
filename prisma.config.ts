@@ -8,6 +8,7 @@ export function createPrismaConfig(environment: NodeJS.ProcessEnv) {
     schema: 'prisma/schema.prisma',
     migrations: {
       path: 'prisma/migrations',
+      seed: 'pnpm run seed:execute',
     },
     ...(datasourceUrl
       ? {
