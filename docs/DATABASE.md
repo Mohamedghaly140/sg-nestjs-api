@@ -1,6 +1,6 @@
 # SG Couture — Database Design
 
-> **Status:** Living document · **Last updated:** 2026-07-03 · **Source of truth:** `prisma/schema.prisma` · **Related:** [FEATURES.md](./FEATURES.md), [ADR-0003](./ADR/ADR-0003-stock-reservation-strategy.md)
+> **Status:** Living document · **Last updated:** 2026-07-06 · **Source of truth:** `prisma/schema.prisma` · **Related:** [FEATURES.md](./FEATURES.md), [ADR-0003](./ADR/ADR-0003-stock-reservation-strategy.md)
 >
 > ⚠️ Any change to `schema.prisma` MUST be reflected here (and in CHANGELOG.md) in the same task.
 
@@ -110,9 +110,24 @@ No coupon field on Cart: **coupons apply at checkout only**, not stored on carts
 
 Percentage discount codes. `name` unique, stored **UPPERCASE**. `discount` 1–70 (%). `maxUsage` 0 = unlimited; `usedCount` incremented atomically at order creation, decremented when an order is cancelled before payment. `expire` = expiry datetime; `isActive` = kill switch. Discount applies to the **items subtotal (after product discounts)**, never to shipping fees.
 
-> ⚠️ **Schema change required** for the per-user limit — see §4.2.
+`perUserLimit` defaults to 1; 0 means unlimited uses per registered user or anonymous email. Global and per-user availability checks and increments happen in the same order-creation transaction to prevent concurrent over-consumption. `orders[]` retains the optional coupon association; `usages[]` records successful consumption.
 
-### 3.10 Order (`orders`) & OrderItem (`orderItems`)
+### 3.10 CouponUsage (`couponUsages`)
+
+One row per successful coupon consumption. `couponId` owns a cascading relation to Coupon; `orderId` is unique so one order cannot consume the same coupon more than once. Exactly one purchaser identity is populated by the checkout mode: `userId` for registered checkout or normalized `anonEmail` for anonymous checkout.
+
+`@@index([couponId, userId])` and `@@index([couponId, anonEmail])` support per-purchaser limit checks. A usage row is created in the checkout transaction and deleted if an unpaid order cancellation releases the coupon. Claiming a guest order does not rewrite its anonymous-email usage identity.
+
+### 3.11 ShippingZone (`shippingZones`)
+
+Server-owned EGP shipping fees keyed by `country`, `governorate`, and optional `city`. `city = null` represents a governorate-wide fallback; fee resolution selects an active city match first, then the active governorate-wide match. No match produces `SHIPPING_NOT_AVAILABLE`.
+
+Two uniqueness rules prevent ambiguous resolution:
+
+- `@@unique([country, governorate, city])` prevents duplicate city-specific zones.
+- `@@unique([country, governorate], where: { city: null })` prevents duplicate governorate-wide zones. This partial unique index is declared in `schema.prisma` using Prisma's `partialIndexes` preview feature and materialized by migration `20260704234353_shipping_zone_null_city_unique`.
+
+### 3.12 Order (`orders`) & OrderItem (`orderItems`)
 
 Immutable-ish record of a purchase. Two creation modes:
 
@@ -133,15 +148,15 @@ Key fields:
 | `guestToken` | unique, crypto-random; claiming sets `userId` + `claimedByUserId` (audit) and nulls the token |
 | `claimedByUserId` | Audit trail of who claimed a guest order (kept even though `userId` is set) |
 
-`OrderItem.price` = snapshot of `priceAfterDiscount` **at order time** (authoritative for the order total forever). `product` is `Restrict` (order history protects products from deletion).
+`geideaSessionId` and `geideaOrderId` are nullable unique identifiers used only for CARD orders; they replace the original Stripe-specific field. `OrderItem.price` = snapshot of `priceAfterDiscount` **at order time** (authoritative for the order total forever). `product` is `Restrict` (order history protects products from deletion).
 
-> ⚠️ **Schema change required:** replace Stripe field with Geidea fields — see §4.1.
-
-### 3.11 Notification (`notifications`)
+### 3.13 Notification (`notifications`)
 
 In-app notifications. `type` string (`ORDER_SHIPPED`, `ORDER_DELIVERED`, `ORDER_PAID`, `PROMO`, …), `metadata Json?` for deep-link payloads (e.g. `{ orderId }`). `@@index([userId, read])` supports the unread-badge query. Created by event listeners on order lifecycle events; FCM push mirrors these later.
 
 ## 4. Required Schema Changes (Migration 001 — before Phase 6/7)
+
+> ✅ **Applied** (2026-07-05, migration `20260704231931_init` — the first migration, so it establishes the baseline schema and these changes together). PrismaModule/PrismaService live at `src/prisma/`.
 
 The provided schema was written against Stripe and without per-user coupon limits or shipping zones. Apply these changes; each is also an implementation-progress item in DEVELOPMENT_PHASES.md.
 
@@ -196,11 +211,14 @@ model ShippingZone {
   updatedAt   DateTime @updatedAt
 
   @@unique([country, governorate, city])
+  @@unique([country, governorate], where: { city: null }, map: "shippingZones_country_governorate_null_city_key")
   @@map("shippingZones")
 }
 ```
 
 Fee lookup = most specific active match: (country, governorate, city) → (country, governorate, null). No match → 422 `SHIPPING_NOT_AVAILABLE`. Bosta integration later replaces/augments the lookup behind the same `ShippingService` interface.
+
+The generator enables `previewFeatures = ["partialIndexes"]` so the governorate-wide partial unique index remains part of Prisma's schema model. The migration creates the corresponding PostgreSQL index with `WHERE "city" IS NULL`; future `prisma migrate dev` runs therefore preserve it instead of treating it as unmanaged drift.
 
 ### 4.4 Order number sequence
 

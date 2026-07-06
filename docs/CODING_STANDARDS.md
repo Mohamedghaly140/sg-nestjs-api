@@ -1,6 +1,6 @@
 # SG Couture — Coding Standards
 
-> **Status:** Living document · **Last updated:** 2026-07-05 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing, API documentation (Swagger).
+> **Status:** Living document · **Last updated:** 2026-07-06 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing, API documentation (Swagger).
 
 ## 1. Naming Conventions
 
@@ -118,7 +118,8 @@ Prisma mapping (in `PrismaExceptionFilter`): `P2002`→409, `P2025`→404, `P200
 |---|---|
 | `NODE_ENV` | `development` / `production` / `test` |
 | `PORT` | HTTP port (default 3000) |
-| `DATABASE_URL` | Postgres connection string |
+| `DATABASE_URL` | Postgres connection string (pooled — used by the running app via `@prisma/adapter-pg`) |
+| `DIRECT_URL` | Optional direct (non-pooled) Postgres connection string for Prisma CLI database commands; `prisma.config.ts` falls back to `DATABASE_URL`. It is not runtime application config |
 | `CORS_ORIGINS` | Comma-separated allowed origins |
 | `CLERK_SECRET_KEY` | Clerk backend API key (JWT verify, user API, metadata writes) |
 | `CLERK_WEBHOOK_SECRET` | Svix signing secret for `/webhooks/clerk` |
@@ -134,7 +135,7 @@ Prisma mapping (in `PrismaExceptionFilter`): `P2002`→409, `P2025`→404, `P200
 | `GUEST_TOKEN_TTL_DAYS` | Claim token validity (default 30) |
 | `ANON_CART_TTL_DAYS` | Anonymous cart TTL (default 7) |
 
-All validated in `config/env.validation.ts`; boot fails on any missing/invalid value.
+All are validated in `config/env.validation.ts` when present. Boot currently requires the Phase 0 runtime variables listed in `docs/DEVELOPMENT_PHASES.md`; `DIRECT_URL` is optional because only Prisma CLI database commands use it.
 
 ## 8. Testing Strategy
 

@@ -3,6 +3,13 @@
 /node_modules
 /build
 
+# Prisma generated client
+/generated
+/src/generated/prisma
+
+# TypeScript incremental build metadata
+*.tsbuildinfo
+
 # Logs
 logs
 *.log

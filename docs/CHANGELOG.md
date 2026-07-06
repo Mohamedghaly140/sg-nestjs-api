@@ -2,6 +2,33 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-06 — Phase 0 · Prisma review hardening
+
+- Made `prisma.config.ts` safe to load without `.env`: `DIRECT_URL` is optional and preferred for database CLI commands, `DATABASE_URL` is its fallback, and client generation needs neither. Runtime configuration now exposes only `database.url`; `PrismaService` receives that validated namespace through Nest dependency injection instead of reading `process.env` or falling back implicitly.
+- Replaced the unconditional Prisma postinstall command with a Node wrapper that generates the client when the development-only Prisma CLI is installed and cleanly skips generation during production-only dependency installs.
+- Moved generated Prisma output to `src/generated/prisma`, restored the normal `dist/main.js` application layout, and split build type-check/emission configs so root `prisma.config.ts` is type-checked while application emission remains rooted at `src/`. Added root-config lint coverage and focused config tests.
+- Enabled Prisma's `partialIndexes` preview feature and declared the governorate-wide ShippingZone uniqueness rule in `schema.prisma`; aligned the existing migration comment so future migration diffs retain the PostgreSQL partial unique index.
+- Added the generated-client `.js` import mapper to both unit and e2e Jest configurations and enabled Jest VM modules for Prisma's runtime WASM import. Added explicit tests that missing `DIRECT_URL` is accepted, malformed provided `DIRECT_URL` is rejected, and Prisma config URL selection/no-env generation behavior is correct.
+- Expanded `DATABASE.md` model documentation for Coupon, CouponUsage, ShippingZone, and Order and removed obsolete “Schema change required” placeholders. Updated `DEVELOPMENT_PHASES.md`, `CODING_STANDARDS.md`, `ARCHITECTURE.md`, `CLAUDE.md`, and `AGENTS.md` for the corrected paths and configuration behavior.
+
+## 2026-07-05 — Phase 0 · fixes from Codex review of the PrismaModule work
+
+- Added `"postinstall": "prisma generate"` to `package.json` — `generated/` is (correctly) gitignored, but nothing regenerated it on a fresh `pnpm install`, so a clean checkout couldn't build.
+- Fixed `ShippingZone`'s uniqueness gap: `@@unique([country, governorate, city])` doesn't stop duplicate governorate-wide rows because Postgres treats each `NULL` `city` as distinct. Prisma's schema DSL can't express a partial unique index, so added one via raw SQL (`prisma/migrations/20260704234353_shipping_zone_null_city_unique`): `UNIQUE (country, governorate) WHERE city IS NULL` — same pattern as `order_number_seq`. Verified via the actual Prisma client that a second governorate-wide zone for the same (country, governorate) is now rejected (`P2002`).
+
+## 2026-07-05 — Phase 0 · PrismaModule + Migration 001
+
+- Applied the first migration (`prisma/migrations/20260704231931_init`) against the project's Supabase Postgres database — since no prior migration history existed, this single migration establishes the baseline schema *and* the Migration 001 changes required by `docs/DATABASE.md §4`: `Order.stripePaymentIntentId` replaced with `geideaSessionId`/`geideaOrderId`; `Coupon.perUserLimit` + new `CouponUsage` model; new `ShippingZone` model; `order_number_seq` Postgres sequence (raw SQL, hand-appended to the generated migration); indexes on `products`, `orders`, `reviews` per §5.
+- The target database already had tables from an earlier untracked schema sync (1 user, 2 products, 1 category, 1 cart, 1 coupon — confirmed disposable test data). Reset via `prisma migrate reset` with explicit user consent (Prisma's CLI blocks this specific operation for AI agents without it) to establish clean migration history.
+- Added `prisma.config.ts` (Prisma 7's CLI config; `datasource.url = env('DIRECT_URL')`, direct/non-pooled connection for `migrate`/`generate`/`studio`). Added `dotenv` (devDependency) since Prisma 7 no longer auto-loads `.env` and `prisma.config.ts` needs its own `import 'dotenv/config'`.
+- Added `src/prisma/prisma.service.ts` (extends the generated `PrismaClient`, `@prisma/adapter-pg` adapter constructed with the pooled `DATABASE_URL`, `OnModuleInit`/`OnModuleDestroy` connect/disconnect) and `src/prisma/prisma.module.ts` (`@Global`), wired into `src/app.module.ts`.
+- **Correction to the previous entry below:** `@prisma/client` *is* required even with the new `provider = "prisma-client"` generator and custom `output` — the generated code imports runtime helpers from `@prisma/client/runtime/*`. Installed it.
+- Set `moduleFormat = "cjs"` explicitly on the `generator client` block in `schema.prisma`. Without it, the generator inferred ESM (emitting `import.meta.url`) since this project has no `"type": "module"` in `package.json`, which crashed at runtime (`exports is not defined in ES module scope`) once compiled.
+- `prisma.config.ts` and the Prisma-generated `generated/` output sit outside `src/`, which changed tsc's inferred build root — compiled output is now `dist/src/**` instead of `dist/**`. Updated `tsconfig.build.json` (exclude `prisma.config.ts`) and `package.json`'s `start:prod` script (`node dist/src/main`). Added `/generated` to `.gitignore` (previously missing, despite `CLAUDE.md` documenting it as gitignored).
+- Added `DIRECT_URL` to the required-at-boot env vars (`src/config/env.validation.ts`, `configuration.ts`'s `database` namespace) and to `docs/CODING_STANDARDS.md §7`'s env var table (it wasn't previously documented).
+- Verified: `pnpm build`/`lint`/`test` pass; `prisma migrate status` shows the migration applied; a direct query through the compiled `PrismaService` path succeeds against the real database; boot fails fast with a clear message when `DIRECT_URL` is missing/invalid (extends the prior step's env-validation tests).
+- `docs/DATABASE.md`: Migration 001 marked applied. `docs/DEVELOPMENT_PHASES.md`: Phase 0's `PrismaModule` checklist line checked off. `CLAUDE.md`: "Current state" updated to reflect Phase 0 progress.
+
 ## 2026-07-05 — Phase 0 · dependencies + ConfigModule with fail-fast env validation
 
 - Installed Phase 0 dependencies in one pass: `@nestjs/config`, `helmet`, `@nestjs/throttler`, `@nestjs/terminus`, `class-validator`, `class-transformer`, `nestjs-pino` + `pino-http` + `pino`, `@prisma/adapter-pg` + `pg` (dependencies); `prisma`, `@types/pg`, `pino-pretty` (devDependencies). `@prisma/client` deliberately **not** installed — `prisma/schema.prisma` uses the new `provider = "prisma-client"` generator with custom `output`, which is self-contained and driver-adapter based; revisit at the PrismaModule step per the `prisma-driver-adapter-implementation` skill.

@@ -41,6 +41,13 @@ export class EnvironmentVariables {
   })
   DATABASE_URL: string;
 
+  @IsOptional()
+  @IsString()
+  @Matches(/^postgres(ql)?:\/\/.+/, {
+    message: 'DIRECT_URL must be a postgres(ql):// connection string',
+  })
+  DIRECT_URL?: string;
+
   @IsString()
   @IsNotEmpty()
   CORS_ORIGINS: string;

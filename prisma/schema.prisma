@@ -1,6 +1,8 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  moduleFormat    = "cjs"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -138,17 +140,17 @@ model Product {
   sold               Int           @default(0)
   price              Decimal       @db.Decimal(10, 2)
   discount           Decimal       @default(0) @db.Decimal(5, 2)
-  priceAfterDiscount Decimal       @default(0) @db.Decimal(10, 2) 
+  priceAfterDiscount Decimal       @default(0) @db.Decimal(10, 2)
   sizes              String[]
   colors             String[]
-  imageId            String       
+  imageId            String
   imageUrl           String
-  ratingsAverage     Decimal?      @db.Decimal(2, 1) 
-  ratingsQuantity    Int           @default(0) 
+  ratingsAverage     Decimal?      @db.Decimal(2, 1)
+  ratingsQuantity    Int           @default(0)
   status             ProductStatus @default(DRAFT)
   featured           Boolean       @default(false)
 
-  categoryId String  
+  categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   images        ProductImage[]
@@ -161,6 +163,8 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([status, featured])
+  @@index([categoryId, status])
   @@map("products")
 }
 
@@ -223,6 +227,7 @@ model Review {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, productId])
+  @@index([productId])
   @@map("reviews")
 }
 
@@ -269,22 +274,65 @@ model CartItem {
 // COUPON
 // discount = percentage (1–70)
 // maxUsage = 0 means unlimited
+// perUserLimit = 0 means unlimited per user
 // ─────────────────────────────────────────
 
 model Coupon {
-  id        String   @id @default(cuid())
-  name      String   @unique // uppercase e.g. "SAVE20"
-  discount  Decimal  @db.Decimal(5, 2)
-  usedCount Int      @default(0)
-  maxUsage  Int      @default(0)
-  expire    DateTime
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String   @unique // uppercase e.g. "SAVE20"
+  discount     Decimal  @db.Decimal(5, 2)
+  usedCount    Int      @default(0)
+  maxUsage     Int      @default(0)
+  perUserLimit Int      @default(1)
+  expire       DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   orders Order[]
+  usages CouponUsage[]
 
   @@map("coupons")
+}
+
+// One row per successful consumption; deleted if the order is cancelled
+// before payment so the slot is released back to the user/coupon.
+model CouponUsage {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String?
+  anonEmail String?
+  orderId   String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@index([couponId, anonEmail])
+  @@map("couponUsages")
+}
+
+// ─────────────────────────────────────────
+// SHIPPING ZONE
+// Fee lookup resolves most-specific match first:
+// (country, governorate, city) > (country, governorate, null).
+//
+// Postgres treats each NULL as distinct, so the partial unique index prevents
+// duplicate governorate-wide rows where city is null.
+// ─────────────────────────────────────────
+
+model ShippingZone {
+  id          String   @id @default(cuid())
+  country     String
+  governorate String
+  city        String?
+  fee         Decimal  @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([country, governorate, city])
+  @@unique([country, governorate], where: { city: null }, map: "shippingZones_country_governorate_null_city_key")
+  @@map("shippingZones")
 }
 
 // ─────────────────────────────────────────
@@ -299,8 +347,8 @@ model Coupon {
 //   anonCountry / anonCity / ... set (shipping info).
 //   guestToken set — sent in confirmation email for order claiming.
 //
-// CARD: stripePaymentIntentId set, isPaid flipped by Stripe webhook.
-// CASH: stripePaymentIntentId null, isPaid flipped manually by admin.
+// CARD: geideaSessionId/geideaOrderId set, isPaid flipped by Geidea webhook.
+// CASH: geideaSessionId/geideaOrderId null, isPaid flipped manually by admin.
 // ─────────────────────────────────────────
 
 model Order {
@@ -316,7 +364,8 @@ model Order {
   deliveredAt     DateTime?     
   notes           String?
 
-  stripePaymentIntentId String? @unique 
+  geideaSessionId String? @unique
+  geideaOrderId   String? @unique
 
   // Registered user
   userId            String? 
@@ -352,9 +401,11 @@ model Order {
   claimedByUserId     String?   
 
   items     OrderItem[]
-  createdAt DateTime    @default(now()) 
-  updatedAt DateTime    @updatedAt 
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
+  @@index([userId, createdAt])
+  @@index([status])
   @@map("orders")
 }
 

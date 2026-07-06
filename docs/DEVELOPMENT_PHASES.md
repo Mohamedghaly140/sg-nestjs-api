@@ -1,12 +1,12 @@
 # SG Couture — Development Phases
 
-> **Status:** Living document · **Last updated:** 2026-07-05
+> **Status:** Living document · **Last updated:** 2026-07-06
 >
 > 🤖 **Claude Code:** read this file **first** on every task. Work only within the active phase unless told otherwise. Update statuses and checklists immediately after completing work.
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** Active phase: **Phase 0** (in progress — dependencies installed, `ConfigModule` with fail-fast env validation done; PrismaModule/migration, bootstrap wiring, interceptors/filters, and HealthModule still outstanding).
+**Current state:** Active phase: **Phase 0** (in progress — dependencies, validated `ConfigModule`, and hardened PrismaModule/migrations are done; bootstrap wiring, interceptors/filters, and HealthModule remain outstanding).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -19,8 +19,9 @@
 
 **Features / tasks**
 - [ ] NestJS scaffold, strict TS config, ESLint + Prettier
-- [x] `ConfigModule` with env validation (fail-fast on boot) — full list in [CODING_STANDARDS.md §Environment Variables](./CODING_STANDARDS.md#environment-variables). Required now: `NODE_ENV`, `PORT`, `DATABASE_URL`, `CORS_ORIGINS`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`; other vars typed/defaulted but optional until their phase lands.
-- [ ] `PrismaModule` + provided schema + **Migration 001** ([DATABASE.md §4](./DATABASE.md#4-required-schema-changes-migration-001--before-phase-67): Geidea fields, Coupon.perUserLimit + CouponUsage, ShippingZone, order sequence, extra indexes)
+- [x] `ConfigModule` with env validation (fail-fast on boot) — full list in [CODING_STANDARDS.md §Environment Variables](./CODING_STANDARDS.md#environment-variables). Required now: `NODE_ENV`, `PORT`, `DATABASE_URL`, `CORS_ORIGINS`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`; `DIRECT_URL` is optional and CLI-only; other vars are typed/defaulted but optional until their phase lands.
+- [x] `PrismaModule` + provided schema + **Migration 001** ([DATABASE.md §4](./DATABASE.md#4-required-schema-changes-migration-001--before-phase-67): Geidea fields, Coupon.perUserLimit + CouponUsage, ShippingZone, order sequence, extra indexes) — applied via `prisma/migrations/20260704231931_init`; `src/prisma/{prisma.module.ts,prisma.service.ts}` use `@prisma/adapter-pg` and validated injected database config; client generation targets `src/generated/prisma`; the shipping-zone partial unique index is schema-declared.
+- [x] Phase 0 Prisma review hardening — fresh/no-env generation, production-only install-safe postinstall, Jest generated-client mapping, normal `dist/main.js` output, and build/lint coverage for `prisma.config.ts`.
 - [ ] Global prefix `/api` + URI versioning `v1`; helmet; CORS allow-list from env
 - [ ] Global ValidationPipe, ResponseEnvelopeInterceptor, PrismaExceptionFilter, AllExceptionsFilter, error-code constants
 - [ ] `SwaggerModule` setup in `src/main.ts` (`@nestjs/swagger`, already installed) — OpenAPI doc + Swagger UI served at `/api/docs`; Bearer auth scheme registered

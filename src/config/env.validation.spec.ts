@@ -5,6 +5,7 @@ describe('env.validation', () => {
     NODE_ENV: 'development',
     PORT: '3000',
     DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
+    DIRECT_URL: 'postgresql://user:pass@localhost:5432/db',
     CORS_ORIGINS: 'http://localhost:3000',
     CLERK_SECRET_KEY: 'sk_test_xxx',
     CLERK_WEBHOOK_SECRET: 'whsec_xxx',
@@ -22,6 +23,19 @@ describe('env.validation', () => {
   it('throws when NODE_ENV is not a recognized value', () => {
     expect(() => validate({ ...validEnv, NODE_ENV: 'bogus' })).toThrow(
       /Environment validation failed/,
+    );
+  });
+
+  it('accepts a missing DIRECT_URL because it is CLI-only and optional', () => {
+    const { DIRECT_URL, ...withoutDirectUrl } = validEnv;
+    void DIRECT_URL;
+
+    expect(validate(withoutDirectUrl).DIRECT_URL).toBeUndefined();
+  });
+
+  it('throws when an optional DIRECT_URL is present but invalid', () => {
+    expect(() => validate({ ...validEnv, DIRECT_URL: 'not-postgres' })).toThrow(
+      /DIRECT_URL/,
     );
   });
 

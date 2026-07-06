@@ -1,5 +1,5 @@
 ---
-name: DocsExplorer
+name: docs-explorer
 description: Documentation lookup specialist for the SG Couture backend (NestJS + Prisma + Clerk + Geidea). Use proactively when needing docs for any library, framework, or technology used in this repo. Fetches docs in parallel for multiple technologies.
 tools: WebFetch, WebSearch, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__prisma__search_prisma_documentation
 model: sonnet
