@@ -1,6 +1,6 @@
 # SG Couture — API Specification
 
-> **Status:** Living document · **Last updated:** 2026-07-05 · **Base URL:** `/api/v1` · **Related:** [FEATURES.md](./FEATURES.md) (business rules), [CODING_STANDARDS.md](./CODING_STANDARDS.md) (envelope, validation, error codes)
+> **Status:** Living document · **Last updated:** 2026-07-06 · **Base URL:** `/api/v1` · **Related:** [FEATURES.md](./FEATURES.md) (business rules), [CODING_STANDARDS.md](./CODING_STANDARDS.md) (envelope, validation, error codes)
 >
 > 🤖 **Claude Code:** every new/changed endpoint MUST be documented here using the template below, in the correct section, before the task is considered done — **and** MUST carry `@nestjs/swagger` decorators in code (`@ApiTags`/`@ApiOperation`/`@ApiResponse` on the controller, `@ApiProperty` on DTOs), applied via the `nestjs-swagger` skill, so it appears in the Swagger UI at `/api/docs`.
 
@@ -32,10 +32,14 @@ Swagger: <@ApiOperation summary · @ApiResponse codes · DTO @ApiProperty comple
 
 ### GET /health
 Liveness/readiness (DB ping) · Auth: Public
-Path/Query/Body: — · Validation: —
+Headers: —
+Path params: — · Query params: —
+Request body: —
+Validation: —
 Success (200): `{ "app": "up", "database": "up" }`
 Errors: 503 `SERVICE_UNAVAILABLE` when DB unreachable
-Notes: throttler-exempt.
+Notes: Throttler-exempt. The application and PostgreSQL connection must both be available; the database check uses `SELECT 1`.
+Swagger: `Liveness/readiness check (DB ping)` · `@ApiResponse` 200/503 · `HealthResponseDto` properties documented with `@ApiProperty`
 
 ---
 

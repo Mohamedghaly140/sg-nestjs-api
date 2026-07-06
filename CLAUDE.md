@@ -62,7 +62,7 @@ pnpm test                    # jest unit tests (*.spec.ts under src/)
 pnpm test:watch              # jest --watch
 pnpm test:cov                # jest --coverage
 pnpm test:e2e                # jest -c test/jest-e2e.json (test/**/*.e2e-spec.ts)
-pnpm test -- app.controller  # run a single unit test file by name pattern
+pnpm test -- error-codes     # run a single unit test file by name pattern
 pnpm test -- -t "test name"  # run tests matching a name
 
 pnpm exec prisma migrate dev # apply/create a migration against DIRECT_URL, or DATABASE_URL as fallback

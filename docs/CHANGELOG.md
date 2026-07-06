@@ -2,6 +2,15 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-06 — Phase 0 · HTTP-layer skeleton and health endpoint
+
+- Replaced the bare bootstrap with the `/api/v1` global route configuration, URI versioning, Helmet, environment-driven credentialed CORS, global DTO validation, and Swagger UI/OpenAPI setup at `/api/docs` with Bearer authentication metadata.
+- Added the universal success envelope, stable error-code catalog, recursive validation-error formatting, Prisma known-error mapping, and the final safe exception filter. `AllExceptionsFilter` (catch-all) is registered ahead of `PrismaExceptionFilter` in `CommonModule`, since Nest reverses the global-filter array before matching first-to-last — registering the catch-all first means the specific Prisma filter is checked first at runtime. Unknown server errors never expose internal messages or stacks.
+- Added structured Pino request logging with correlation IDs and sensitive-field redaction, development-only pretty output, and the global 100-request-per-minute throttler guard.
+- Added the throttler-exempt `GET /api/v1/health` endpoint using Terminus's `HealthCheckService` and its built-in `PrismaHealthIndicator.pingCheck` (`SELECT 1`, 1000ms timeout), including the documented success payload and normalized `SERVICE_UNAVAILABLE` response.
+- Removed the untouched Nest CLI controller/service and sample tests. Added focused unit coverage for constants, validation, envelopes, filters, and health behavior plus e2e coverage for healthy/unhealthy health checks and the documented 422 DTO response.
+- Updated `DEVELOPMENT_PHASES.md` to mark this Phase 0 slice complete and expanded the health contract in `API_SPECIFICATION.md`. Phase 0 remains in progress because seed data and quick-start work are still outstanding.
+
 ## 2026-07-06 — Phase 0 · Prisma review hardening
 
 - Made `prisma.config.ts` safe to load without `.env`: `DIRECT_URL` is optional and preferred for database CLI commands, `DATABASE_URL` is its fallback, and client generation needs neither. Runtime configuration now exposes only `database.url`; `PrismaService` receives that validated namespace through Nest dependency injection instead of reading `process.env` or falling back implicitly.
