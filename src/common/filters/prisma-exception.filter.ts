@@ -8,6 +8,7 @@ import type { Response } from 'express';
 import { Logger } from 'nestjs-pino';
 import { Prisma } from '../../generated/prisma/client';
 import { ERROR_CODES, type ErrorCode } from '../constants/error-codes';
+import type { ApiErrorResponse } from '../interfaces/api-response';
 
 interface PrismaErrorMapping {
   code: ErrorCode;
@@ -42,7 +43,7 @@ export class PrismaExceptionFilter implements ExceptionFilter {
       status: 'error',
       message: mapping.message,
       code: mapping.code,
-    });
+    } satisfies ApiErrorResponse);
   }
 
   private mapException(

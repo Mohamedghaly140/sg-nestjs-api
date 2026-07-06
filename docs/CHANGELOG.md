@@ -2,6 +2,11 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-06 — Phase 0 · Typed response envelope interfaces
+
+- Added `src/common/interfaces/api-response.ts` with shared `ApiSuccessResponse<T>`, `ApiErrorResponse`, and `ApiResponse<T>` types matching the documented envelope shape (`CODING_STANDARDS.md §2`). Type-only refactor with no behavior change: `ResponseEnvelopeInterceptor` now implements `NestInterceptor<unknown, ApiSuccessResponse<unknown>>`, and both exception filters annotate their JSON payloads with `satisfies ApiErrorResponse`. `ApiErrorResponse.code` is `string` (not narrowed to `ErrorCode`) since filters pass through unchecked codes from arbitrary thrown `HttpException` bodies.
+- No endpoint, schema, or wire-format changes; existing unit specs pass unchanged.
+
 ## 2026-07-06 — Phase 0 · HTTP-layer skeleton and health endpoint
 
 - Replaced the bare bootstrap with the `/api/v1` global route configuration, URI versioning, Helmet, environment-driven credentialed CORS, global DTO validation, and Swagger UI/OpenAPI setup at `/api/docs` with Bearer authentication metadata.

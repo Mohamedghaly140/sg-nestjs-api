@@ -5,6 +5,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
+import type { ApiSuccessResponse } from '../interfaces/api-response';
 
 function isPlainObject(
   value: unknown,
@@ -22,13 +23,16 @@ function isPlainObject(
 }
 
 @Injectable()
-export class ResponseEnvelopeInterceptor implements NestInterceptor {
+export class ResponseEnvelopeInterceptor implements NestInterceptor<
+  unknown,
+  ApiSuccessResponse<unknown>
+> {
   intercept(
     _context: ExecutionContext,
     next: CallHandler,
-  ): Observable<unknown> {
+  ): Observable<ApiSuccessResponse<unknown>> {
     return next.handle().pipe(
-      map((payload: unknown) => {
+      map((payload: unknown): ApiSuccessResponse<unknown> => {
         if (isPlainObject(payload)) {
           return {
             status: 'success',

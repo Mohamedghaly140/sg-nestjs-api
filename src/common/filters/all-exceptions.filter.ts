@@ -11,6 +11,7 @@ import {
   DEFAULT_ERROR_CODE_BY_STATUS,
   ERROR_CODES,
 } from '../constants/error-codes';
+import type { ApiErrorResponse } from '../interfaces/api-response';
 
 interface HttpErrorPayload {
   code: string;
@@ -89,7 +90,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message: payload.message,
         code: payload.code,
         ...(payload.errors === undefined ? {} : { errors: payload.errors }),
-      });
+      } satisfies ApiErrorResponse);
       return;
     }
 
@@ -104,6 +105,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status: 'error',
       message: 'Internal server error',
       code: ERROR_CODES.INTERNAL_ERROR,
-    });
+    } satisfies ApiErrorResponse);
   }
 }
