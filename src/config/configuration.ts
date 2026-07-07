@@ -19,6 +19,10 @@ export const corsConfig = registerAs('cors', () => ({
 export const clerkConfig = registerAs('clerk', () => ({
   secretKey: process.env.CLERK_SECRET_KEY,
   webhookSecret: process.env.CLERK_WEBHOOK_SECRET,
+  authorizedParties: (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0),
 }));
 
 export const geideaConfig = registerAs('geidea', () => ({

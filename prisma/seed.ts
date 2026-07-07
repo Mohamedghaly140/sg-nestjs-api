@@ -47,6 +47,23 @@ async function seed() {
       },
     });
 
+    await prisma.user.upsert({
+      where: { email: 'manager.seed@sgcouture.test' },
+      update: {
+        name: 'Salma Adel',
+        phone: '+201000000003',
+        role: Role.MANAGER,
+        active: true,
+      },
+      create: {
+        id: 'user_seed_manager',
+        email: 'manager.seed@sgcouture.test',
+        name: 'Salma Adel',
+        phone: '+201000000003',
+        role: Role.MANAGER,
+      },
+    });
+
     const customer = await prisma.user.upsert({
       where: { email: 'customer.seed@sgcouture.test' },
       update: {
@@ -577,7 +594,7 @@ async function seed() {
     });
 
     console.log(
-      'Seed complete: 2 users, 1 address, 2 categories, 3 subcategories, ' +
+      'Seed complete: 3 users, 1 address, 2 categories, 3 subcategories, ' +
         '3 products, 4 product images, 2 reviews, 2 coupons, ' +
         '2 shipping zones, 2 orders, 2 order items.',
     );

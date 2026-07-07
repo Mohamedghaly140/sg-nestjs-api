@@ -23,7 +23,8 @@ enum Environment {
  * Only NODE_ENV, PORT, DATABASE_URL, CORS_ORIGINS, CLERK_SECRET_KEY and
  * CLERK_WEBHOOK_SECRET are required to boot right now (docs/CODING_STANDARDS.md §7).
  * Every other documented var is typed/defaulted but optional until its owning
- * phase's module lands (Phase 2 Cloudinary, Phase 7 Geidea, Phase 8 Resend/mail).
+ * phase's module lands (Phase 1 optionally uses Resend for admin password-reset
+ * notices; Phase 2 Cloudinary, Phase 7 Geidea, Phase 8 full Resend/mail).
  */
 export class EnvironmentVariables {
   @IsEnum(Environment)

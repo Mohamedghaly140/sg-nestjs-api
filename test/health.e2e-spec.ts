@@ -6,6 +6,7 @@ import { IsString } from 'class-validator';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { Public } from '../src/common/decorators/public.decorator';
 import { configureApp } from '../src/common/utils/configure-app';
 
 class ValidationTestDto {
@@ -14,6 +15,7 @@ class ValidationTestDto {
   value: string;
 }
 
+@Public()
 @Controller('validation-test')
 class ValidationTestController {
   @Post()

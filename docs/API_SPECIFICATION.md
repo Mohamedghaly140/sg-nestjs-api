@@ -53,6 +53,7 @@ Validation: Svix signature against `CLERK_WEBHOOK_SECRET`; unknown event types a
 Success (200): `{ "received": true }`
 Errors: 401 `INVALID_WEBHOOK_SIGNATURE`
 Notes: idempotent upserts/deletes; `user.deleted` cascades per [DATABASE.md §3.1](./DATABASE.md#31-user-users); missing-phone handling per DATABASE.md Assumptions §2. Raw-body route.
+Swagger: `Synchronize Clerk user lifecycle events` · `@ApiResponse` 200/401
 
 ### POST /webhooks/geidea
 Payment result callback from Geidea · Auth: Public (HMAC-signed payload)
@@ -70,6 +71,7 @@ Notes: on success status → `isPaid=true`, `paidAt`, `geideaOrderId` stored, `P
 Current user profile · Auth: User
 Success (200): `{ "id", "email", "name", "phone", "role", "createdAt" }`
 Notes: JIT-syncs from Clerk if webhook lagged.
+Swagger: `Get the current user profile` · `@ApiResponse` 200 · `MeResponseDto` documented
 
 ### PATCH /users/me
 Update own profile (name, phone) · Auth: User
@@ -77,16 +79,19 @@ Request body: `{ "name?", "phone?" }` · Validation: name ≤ 120; phone EG form
 Success (200): updated profile
 Errors: 409 `DUPLICATE_RESOURCE` (phone taken)
 Notes: email/role are NOT editable here; name/phone also pushed to Clerk.
+Swagger: `Update the current user profile` · `@ApiResponse` 200/409 · `UpdateMeDto`/`MeResponseDto` documented
 
 ### GET /admin/users
 Customer/user table · Auth: Manager+
 Query: `page, limit, search` (name/email/phone), `role?`, `active?`
 Success (200): `data: [user…]`, pagination meta
 Notes: MANAGER sees the table; mutation endpoints below stay ADMIN except reset-password.
+Swagger: `List users for administration` · `@ApiResponse` 200 · query/response DTOs documented
 
 ### GET /admin/users/:id
 User detail (+ order count, last order) · Auth: Manager+
 Success (200): user + `stats: { ordersCount, lastOrderAt }`
+Swagger: `Get an administrative user detail` · `@ApiResponse` 200 · path param/detail DTO documented
 
 ### PATCH /admin/users/:id/role
 Change role · Auth: **Admin**
@@ -94,19 +99,23 @@ Request body: `{ "role": "USER" | "MANAGER" | "ADMIN" }`
 Success (200): updated user
 Errors: 409 `SELF_MODIFICATION_FORBIDDEN`
 Notes: mirrors role to Clerk `publicMetadata.role`; audit-logged.
+Swagger: `Change a user role` · `@ApiResponse` 200/409 · path param/request/response DTOs documented
 
 ### PATCH /admin/users/:id/status
 Activate/deactivate · Auth: **Admin**
 Request body: `{ "active": boolean }`
+Success (200): updated user
 Errors: 409 `SELF_MODIFICATION_FORBIDDEN`
 Notes: deactivated users are 403 everywhere; audit-logged.
+Swagger: `Change a user activation status` · `@ApiResponse` 200/409 · path param/request/response DTOs documented
 
 ### POST /admin/users/:id/reset-password
-Trigger a Clerk password-reset email for a customer · Auth: Manager+
+Reset a customer password and send a first-party notice · Auth: Manager+
 Request body: —
 Success (200): `{ "sent": true }`
-Errors: 409 `FORBIDDEN_TARGET` when target role ≠ USER
-Notes: executed via Clerk API; this backend never sees passwords.
+Errors: 409 `FORBIDDEN_TARGET` when target role ≠ USER, for every Manager+ actor (including ADMIN); 503 `SERVICE_UNAVAILABLE` when mail is not configured or delivery fails
+Notes: generates a strong random password, sets it through Clerk with all other sessions signed out, then sends a one-off Resend notice. The password is held only in request memory and is never persisted by this backend. A mail failure is surfaced because the Clerk password has already changed.
+Swagger: `Reset a customer password and send a notice` · `@ApiResponse` 200/409/503 · path param documented
 
 ---
 

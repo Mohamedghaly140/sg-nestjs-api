@@ -2,6 +2,15 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-06 — Phase 1 · Clerk identity sync and authorization
+
+- Added secure-by-default global Clerk authentication and DB-authoritative role guards, optional authentication, public/role/current-user decorators, JWT verification with JIT user sync, active-account enforcement, and ordered Throttler → ClerkAuth → Roles guard wiring.
+- Added Svix-verified raw-body Clerk lifecycle webhooks with replay-safe upsert/delete behavior. Primary email/phone IDs are resolved explicitly; missing phones use the documented `pending:<clerkId>` sentinel; webhook updates never overwrite authoritative `role`/`active`.
+- Added `GET/PATCH /users/me` and the Manager+/Admin user-management API with pagination/filtering, order stats, self-modification protection, best-effort Clerk profile/role mirrors, audit logs, and USER-only administrative password reset using a random Clerk password plus a first-party Resend notice.
+- Added `@clerk/backend`, `svix`, `resend`, and direct `libphonenumber-js` dependencies, a MANAGER seed fixture, complete Swagger decorators/DTO metadata, unit coverage for guards/sync/webhooks/users/mail, and signed-webhook/users/admin e2e coverage.
+- Judgment call recorded: a webhook email/phone unique collision against a different local row is audit-error logged and acknowledged with 200 so Clerk retries cannot loop forever; the conflicting local identity is left unchanged for manual investigation.
+- Updated `docs/DEVELOPMENT_PHASES.md` (Phase 1 complete; Phase 2 active), reconciled `docs/API_SPECIFICATION.md`, and corrected `docs/ADR-0001-clerk-authentication.md` with the actual reset mechanism and resolved phone strategy. No Prisma schema change was made, so `docs/DATABASE.md` remains unchanged.
+
 ## 2026-07-06 — Security · Enabled Row Level Security on all public tables
 
 - The Supabase advisor flagged all 18 `public` tables as exposed with RLS disabled — since Supabase auto-exposes every `public` table through PostgREST as `anon`/`authenticated`, and this project's backend never uses those roles (it connects directly via `@prisma/adapter-pg` as the table-owning `postgres` role, which bypasses RLS), any leaked/used anon or service key would have granted full read/write access to every row.

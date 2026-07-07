@@ -10,7 +10,7 @@ Clerk owns identity end-to-end (sign-up, sign-in, sessions, passwords, verificat
 1. Verifies Clerk Bearer JWTs per request (`@clerk/backend`, cached JWKS) via `ClerkAuthGuard`.
 2. Mirrors users locally through the Svix-verified `POST /webhooks/clerk` (idempotent), with just-in-time sync on webhook lag.
 3. Keeps `role` authoritative in Postgres and mirrors it to Clerk `publicMetadata.role` on change so frontends can gate UI.
-4. Implements **zero** register/login/password/refresh endpoints. MANAGER "reset password" simply triggers Clerk's reset email via the Clerk API.
+4. Implements **zero** register/login/password/refresh endpoints. Administrative password-reset handling is clarified by the 2026-07-06 addendum below.
 
 ## Options Considered
 
@@ -24,5 +24,9 @@ Clerk owns identity end-to-end (sign-up, sign-in, sessions, passwords, verificat
 - Revisit if: Clerk pricing/regional availability becomes a problem — the `users` mirror means migration is possible without data loss.
 
 ## Action Items
-1. [ ] Phase 1 tasks in DEVELOPMENT_PHASES.md
-2. [ ] Confirm phone-collection strategy (DATABASE.md Assumptions §2)
+1. [x] Phase 1 tasks in DEVELOPMENT_PHASES.md
+2. [x] Confirm phone-collection strategy — resolved by the sentinel/profile-completion approach in DATABASE.md Assumptions §2.
+
+## Addendum — 2026-07-06: Administrative password resets
+
+Clerk's Backend API has no operation that triggers Clerk's own password-reset email; that flow belongs to Clerk's frontend `SignIn` resource. For the Manager+ `POST /admin/users/:id/reset-password` support action, the backend therefore generates a strong random password in memory, sets it with `users.updateUser(id, { password, signOutOfOtherSessions: true })`, and sends SG Couture's own one-off Resend notice. The target must have role `USER` regardless of whether the actor is a MANAGER or ADMIN. The generated password is never stored by this backend, and a mail failure is returned as an error rather than reporting a false `{ sent: true }`.

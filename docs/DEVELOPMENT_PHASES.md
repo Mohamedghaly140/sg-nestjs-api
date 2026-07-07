@@ -6,7 +6,7 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phase 0 is complete.** Active phase: **Phase 1** (Identity Sync & Authorization).
+**Current state:** **Phases 0–1 are complete.** Active phase: **Phase 2** (Catalog).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -34,20 +34,20 @@
 
 ---
 
-## Phase 1 — Identity Sync & Authorization (Clerk) ⬜
+## Phase 1 — Identity Sync & Authorization (Clerk) ✅
 
 **Purpose:** authenticated identity + roles for everything that follows. **This is the auth phase — note there are no register/login/password endpoints; Clerk owns those flows** ([ADR-0001](./ADR/ADR-0001-clerk-authentication.md)).
 **Dependencies:** Phase 0. **DB:** `users`.
 
 **Features / tasks**
-- [ ] `ClerkAuthGuard` (JWT verify via `@clerk/backend`, JWKS cache, DB user load, `active` check, JIT sync on webhook lag)
-- [ ] `OptionalAuthGuard`
-- [ ] `RolesGuard` + `@Roles()` + `@CurrentUser()` + `@Public()`
-- [ ] `POST /webhooks/clerk` — Svix verification, raw body, idempotent upsert/delete for `user.created|updated|deleted`
-- [ ] Role mirror → Clerk `publicMetadata.role` on change
-- [ ] `GET/PATCH /users/me`
-- [ ] Admin users API: list/get, `PATCH /admin/users/:id/role` (ADMIN), `PATCH /admin/users/:id/status` (ADMIN), `POST /admin/users/:id/reset-password` (MANAGER+, Clerk-triggered, USER targets only)
-- [ ] Self-modification protection (409)
+- [x] `ClerkAuthGuard` (JWT verify via `@clerk/backend`, JWKS cache, DB user load, `active` check, JIT sync on webhook lag)
+- [x] `OptionalAuthGuard`
+- [x] `RolesGuard` + `@Roles()` + `@CurrentUser()` + `@Public()`
+- [x] `POST /webhooks/clerk` — Svix verification, raw body, idempotent upsert/delete for `user.created|updated|deleted`
+- [x] Role mirror → Clerk `publicMetadata.role` on change
+- [x] `GET/PATCH /users/me`
+- [x] Admin users API: list/get, `PATCH /admin/users/:id/role` (ADMIN), `PATCH /admin/users/:id/status` (ADMIN), `POST /admin/users/:id/reset-password` (MANAGER+, random Clerk password + first-party notice, USER targets only)
+- [x] Self-modification protection (409)
 
 **Endpoints:** see [API_SPECIFICATION.md §2–3](./API_SPECIFICATION.md).
 **Acceptance criteria:** webhook replay-safe; deactivated user gets 403 everywhere; MANAGER cannot change roles; role change visible in Clerk metadata.
@@ -195,7 +195,7 @@
 > 🤖 Claude Code: tick items and update phase statuses above **in the same task** that completes them.
 
 - [x] Phase 0 — Foundation
-- [ ] Phase 1 — Identity & Authorization (Clerk)
+- [x] Phase 1 — Identity & Authorization (Clerk)
 - [ ] Phase 2 — Catalog
 - [ ] Phase 3 — Reviews & Wishlist
 - [ ] Phase 4 — Cart

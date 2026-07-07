@@ -7,7 +7,11 @@ import { LoggerModule } from 'nestjs-pino';
 import { CommonModule } from './common/common.module';
 import configuration from './config/configuration';
 import { validate } from './config/env.validation';
+import { AuthModule } from './modules/auth/auth.module';
+import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
+import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { HealthModule } from './modules/health/health.module';
+import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -70,12 +74,22 @@ import { PrismaModule } from './prisma/prisma.module';
     ]),
     PrismaModule,
     CommonModule,
+    AuthModule,
+    UsersModule,
     HealthModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ClerkAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

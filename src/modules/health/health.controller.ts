@@ -8,11 +8,13 @@ import {
 } from '@nestjs/terminus';
 import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Public } from '../../common/decorators/public.decorator';
 import { HealthResponseDto } from './dto/health-response.dto';
 
 @ApiTags('health')
 @Controller({ path: 'health' })
 @SkipThrottle()
+@Public()
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,

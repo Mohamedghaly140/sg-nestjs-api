@@ -7,6 +7,7 @@ describe('error codes', () => {
       'UNAUTHENTICATED',
       'INVALID_WEBHOOK_SIGNATURE',
       'FORBIDDEN',
+      'FORBIDDEN_TARGET',
       'ACCOUNT_DISABLED',
       'RESOURCE_NOT_FOUND',
       'CLAIM_TOKEN_INVALID',
