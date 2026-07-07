@@ -28,8 +28,12 @@ export function createFakeClerkClient() {
   return {
     users: {
       getUser: jest.fn(),
+      createUser: jest.fn().mockResolvedValue({ id: 'user_fake_created' }),
+      deleteUser: jest.fn().mockResolvedValue({}),
       updateUser: jest.fn().mockResolvedValue({}),
       updateUserMetadata: jest.fn().mockResolvedValue({}),
+      banUser: jest.fn().mockResolvedValue({}),
+      unbanUser: jest.fn().mockResolvedValue({}),
     },
     phoneNumbers: {
       createPhoneNumber: jest.fn().mockResolvedValue({ id: 'phone_new' }),

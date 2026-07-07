@@ -1,18 +1,12 @@
 import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsEnum,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
-import { Role } from '../../../generated/prisma/client';
 
-export class QueryAdminUsersDto extends PaginationQueryDto {
+export class QueryAdminCustomersDto extends PaginationQueryDto {
   @ApiPropertyOptional({
-    description: 'Case-insensitive search across name and email',
+    description:
+      'Case-insensitive search across customer name, email, and phone',
     maxLength: 100,
     example: 'mariam',
   })
@@ -25,17 +19,7 @@ export class QueryAdminUsersDto extends PaginationQueryDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by authorization role',
-    enum: Role,
-    enumName: 'Role',
-    example: Role.MANAGER,
-  })
-  @IsOptional()
-  @IsEnum(Role)
-  role?: Role;
-
-  @ApiPropertyOptional({
-    description: 'Filter by activation status',
+    description: 'Filter by customer activation status',
     example: true,
   })
   @IsOptional()

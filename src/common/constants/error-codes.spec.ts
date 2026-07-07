@@ -19,6 +19,7 @@ describe('error codes', () => {
       'PRODUCT_IN_USE',
       'INVALID_STATUS_TRANSITION',
       'SELF_MODIFICATION_FORBIDDEN',
+      'LAST_ADMIN_REQUIRED',
       'FOREIGN_KEY_CONSTRAINT',
       'VALIDATION_ERROR',
       'CART_EMPTY',

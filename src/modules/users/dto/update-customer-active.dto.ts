@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean } from 'class-validator';
 
-export class UpdateStatusDto {
+export class UpdateCustomerActiveDto {
   @ApiProperty({
-    description: 'Whether the user may authenticate to the application',
+    description: 'Whether the customer account should be active',
     example: false,
   })
   @IsBoolean()

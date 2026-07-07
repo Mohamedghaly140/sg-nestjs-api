@@ -6,7 +6,7 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–1 are complete.** Active phase: **Phase 2** (Catalog). Phase 1.5 (admin identity rework — new scope from the 2026-07-07 dashboard-contract merge) is queued and may be done before or alongside Phase 2.
+**Current state:** **Phases 0–1.5 are complete.** Active phase: **Phase 2** (Catalog).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -54,19 +54,19 @@
 
 ---
 
-## Phase 1.5 — Admin Identity Rework (dashboard-contract merge) ⬜
+## Phase 1.5 — Admin Identity Rework (dashboard-contract merge) ✅
 
 **Purpose:** restructure the Phase-1 admin user surface into the customers/users split required by the admin dashboard ([API_SPECIFICATION.md §3](./API_SPECIFICATION.md#3-users)).
 **Dependencies:** Phase 1. **DB:** none (Clerk + existing `users`).
 
 **Features / tasks**
-- [ ] `/admin/customers` module: paginated list (`search`, `active?`, implicit `role = USER`, `ordersCount`), detail (profile + addresses + order history), `PATCH :id/active` (Clerk ban/unban first, then DB; `SELF_MODIFICATION_FORBIDDEN` / `FORBIDDEN_TARGET`)
-- [ ] Move reset-password route to `POST /admin/customers/:id/reset-password` (behavior unchanged)
-- [ ] `/admin/users` (ADMIN): list all roles (`search`, `role?`, `active?`); replace the separate `/role` + `/status` patches with combined `PATCH /admin/users/:id { role, active }`
-- [ ] `POST /admin/users` — create account via Clerk (`createUser` first, then idempotent DB upsert; Clerk rejections → 422 with Clerk message)
-- [ ] `DELETE /admin/users/:id` — Clerk `deleteUser` first (Clerk 404 tolerated), then DB delete
-- [ ] Last-active-admin protection (409 `LAST_ADMIN_REQUIRED`) on staff update/delete; self-modification guards on all mutations
-- [ ] New error codes `LAST_ADMIN_REQUIRED`, `FORBIDDEN_TARGET` in `constants/error-codes.ts` (if missing)
+- [x] `/admin/customers` module: paginated list (`search`, `active?`, implicit `role = USER`, `ordersCount`), detail (profile + addresses + order history), `PATCH :id/active` (Clerk ban/unban first, then DB; `SELF_MODIFICATION_FORBIDDEN` / `FORBIDDEN_TARGET`)
+- [x] Move reset-password route to `POST /admin/customers/:id/reset-password` (behavior unchanged)
+- [x] `/admin/users` (ADMIN): list all roles (`search`, `role?`, `active?`); replace the separate `/role` + `/status` patches with combined `PATCH /admin/users/:id { role, active }`
+- [x] `POST /admin/users` — create account via Clerk (`createUser` first, then idempotent DB upsert; Clerk rejections → 422 with Clerk message)
+- [x] `DELETE /admin/users/:id` — Clerk `deleteUser` first (Clerk 404 tolerated), then DB delete
+- [x] Last-active-admin protection (409 `LAST_ADMIN_REQUIRED`) on staff update/delete; self-modification guards on all mutations
+- [x] New error codes `LAST_ADMIN_REQUIRED`, `FORBIDDEN_TARGET` in `constants/error-codes.ts` (if missing)
 
 **Acceptance criteria:** staff accounts invisible on `/admin/customers/:id` (404); the last active ADMIN cannot be demoted/deactivated/deleted; a Clerk failure leaves the DB untouched (fault-injection test); MANAGER gets 403 on every `/admin/users` route.
 
@@ -217,7 +217,7 @@
 
 - [x] Phase 0 — Foundation
 - [x] Phase 1 — Identity & Authorization (Clerk)
-- [ ] Phase 1.5 — Admin Identity Rework (customers/users split)
+- [x] Phase 1.5 — Admin Identity Rework (customers/users split)
 - [ ] Phase 2 — Catalog
 - [ ] Phase 3 — Reviews & Wishlist
 - [ ] Phase 4 — Cart
