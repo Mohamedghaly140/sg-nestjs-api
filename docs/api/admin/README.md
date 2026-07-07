@@ -1,3 +1,5 @@
+> ⚠️ **Historical reference (frozen).** This folder is the admin-dashboard contract extracted from the original Next.js MVP. On **2026-07-07** it was merged into [`../../API_SPECIFICATION.md`](../../API_SPECIFICATION.md), adapted to this backend's conventions (envelope, pagination meta, error codes, paths/verbs, role tiers). **Where the two differ, `API_SPECIFICATION.md` is authoritative** — do not implement from this folder.
+
 # Admin Backend API Specification
 
 REST API contract for the **admin dashboard** when the project is split into a separate backend and frontend. Every endpoint replaces an existing read service (`features/admin/*/services/`) or Server Action mutation (`features/admin/*/actions/`) — the "Maps from" column names the exact source file whose validation, business rules, and response shape the backend must reproduce.

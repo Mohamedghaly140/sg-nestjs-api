@@ -1,6 +1,6 @@
 # SG Couture — Database Design
 
-> **Status:** Living document · **Last updated:** 2026-07-06 · **Source of truth:** `prisma/schema.prisma` · **Related:** [FEATURES.md](./FEATURES.md), [ADR-0003](./ADR/ADR-0003-stock-reservation-strategy.md)
+> **Status:** Living document · **Last updated:** 2026-07-06 · **Source of truth:** `prisma/schema.prisma` · **Related:** [FEATURES.md](./FEATURES.md), [ADR-0003](./ADR-0003-stock-reservation-strategy.md)
 >
 > ⚠️ Any change to `schema.prisma` MUST be reflected here (and in CHANGELOG.md) in the same task.
 
@@ -64,7 +64,7 @@ Two-level taxonomy. `name` and `slug` unique on both. `imageId/imageUrl` (Cloudi
 | Field | Meaning / Rule |
 |---|---|
 | `slug` | unique, generated from `name` server-side (slugify + collision suffix) |
-| `quantity` | Available stock. Mutated **only** via atomic conditional updates ([ADR-0003](./ADR/ADR-0003-stock-reservation-strategy.md)) |
+| `quantity` | Available stock. Mutated **only** via atomic conditional updates ([ADR-0003](./ADR-0003-stock-reservation-strategy.md)) |
 | `sold` | Lifetime units sold; incremented when an order is **paid**, decremented on refund |
 | `price` | Base price (EGP) |
 | `discount` | Percentage 0–70; validated server-side |

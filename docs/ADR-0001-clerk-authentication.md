@@ -30,3 +30,16 @@ Clerk owns identity end-to-end (sign-up, sign-in, sessions, passwords, verificat
 ## Addendum — 2026-07-06: Administrative password resets
 
 Clerk's Backend API has no operation that triggers Clerk's own password-reset email; that flow belongs to Clerk's frontend `SignIn` resource. For the Manager+ `POST /admin/users/:id/reset-password` support action, the backend therefore generates a strong random password in memory, sets it with `users.updateUser(id, { password, signOutOfOtherSessions: true })`, and sends SG Couture's own one-off Resend notice. The target must have role `USER` regardless of whether the actor is a MANAGER or ADMIN. The generated password is never stored by this backend, and a mail failure is returned as an error rather than reporting a false `{ sent: true }`.
+
+## Addendum — 2026-07-07: Admin-driven account management (dashboard-contract merge)
+
+Merging the admin-dashboard API contract (`docs/api/admin/`, from the split-off Next.js MVP) adds ADMIN-only staff management: `POST /admin/users` (Clerk `createUser` with password, name split, derived username, `publicMetadata.role`) and `DELETE /admin/users/:id` (Clerk `deleteUser`, Clerk 404 tolerated). This **does not weaken this ADR's "zero register/login/password/refresh endpoints" decision**: those exclusions target self-serve credential flows; here an authenticated ADMIN provisions accounts through Clerk's Backend API, Clerk still owns the credentials end-to-end, and nothing password-related is ever persisted by this backend.
+
+Two clarifications adopted with the same merge:
+- **Write ordering for identity mutations is always Clerk first, then DB.** A Clerk failure aborts the request with no DB change, so a subsequent Clerk webhook can never overwrite a half-applied mutation. Postgres remains the authoritative role source on reads (unchanged from Decision §3).
+- **Compensation when the DB write fails after Clerk succeeded** (the request returns 500 either way — the client must treat the mutation as not applied):
+  - *Delete:* self-healing — the `user.deleted` webhook deletes the DB row idempotently; no compensation needed.
+  - *Create:* best-effort compensating Clerk `deleteUser` of the just-created account (otherwise the `user.created` webhook would materialize a row that never got its intended role/active state).
+  - *Role / ban updates:* best-effort compensating revert of Clerk `publicMetadata.role` and ban state to their previous values (the lifecycle webhook cannot fix this drift itself — it deliberately never overwrites authoritative `role`/`active`).
+  - If a compensating call also fails, log a `CRITICAL` audit entry with both intended and actual Clerk/DB states for manual reconciliation. No retry queue at MVP; the admin simply retries the action.
+- The administrative password reset (2026-07-06 addendum) moved with the customers/users split to `POST /admin/customers/:id/reset-password`; behavior is unchanged.

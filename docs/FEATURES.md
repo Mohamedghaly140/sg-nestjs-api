@@ -1,6 +1,6 @@
 # SG Couture — Feature Specifications
 
-> **Status:** Living document · **Last updated:** 2026-07-03 · **Related:** [API_SPECIFICATION.md](./API_SPECIFICATION.md), [DATABASE.md](./DATABASE.md), [DEVELOPMENT_PHASES.md](./DEVELOPMENT_PHASES.md)
+> **Status:** Living document · **Last updated:** 2026-07-07 · **Related:** [API_SPECIFICATION.md](./API_SPECIFICATION.md), [DATABASE.md](./DATABASE.md), [DEVELOPMENT_PHASES.md](./DEVELOPMENT_PHASES.md)
 >
 > This document describes **domain behavior**. Endpoint shapes live in API_SPECIFICATION.md — do not duplicate them here.
 
@@ -17,10 +17,16 @@
 4. Role lives in DB (source of truth). When ADMIN changes a role, the backend also writes it to Clerk `publicMetadata.role` so frontends can gate UI without an extra API call.
 
 **Business rules**
-- No register/login/password/refresh endpoints exist in this backend. Ever.
+- No register/login/password/refresh endpoints exist in this backend. Ever. (Admin-driven account creation/deletion through the Clerk Backend API — `POST/DELETE /admin/users` — is not a credential flow and does not violate this; see [ADR-0001](./ADR-0001-clerk-authentication.md).)
 - Webhook is idempotent: `user.created` for an existing id = upsert; `user.deleted` for a missing id = no-op (200).
 - A verified JWT whose user row doesn't exist yet (webhook lag) → guard performs a just-in-time sync from Clerk's API, then proceeds.
-- Deactivation (`active = false`) blocks all authenticated routes with 403 `ACCOUNT_DISABLED`; ADMIN-only toggle.
+- Deactivation (`active = false`) blocks all authenticated routes with 403 `ACCOUNT_DISABLED`. Customers (`role = USER`) can be toggled by MANAGER+; staff activation is ADMIN-only.
+
+**Staff management (ADMIN-only, `/admin/users`)**
+- Admin surface split: `/admin/customers` targets `role = USER` accounts only (list/detail/activate/reset-password); `/admin/users` manages all accounts incl. staff (list/create/update role+active/delete).
+- Create: Clerk `createUser` first (password handled by Clerk, never persisted here), then idempotent DB upsert with the Clerk id. Delete: Clerk `deleteUser` first (Clerk 404 tolerated), then DB delete.
+- **Write ordering is always Clerk first, then DB** — a Clerk failure aborts with no DB change, so the Clerk webhook can never overwrite a half-applied mutation. DB stays the authoritative role source on reads. If the DB write fails *after* Clerk succeeded, a compensating Clerk rollback is attempted (deletes self-heal via webhook); failed compensation is `CRITICAL`-audit-logged — see [ADR-0001](./ADR-0001-clerk-authentication.md) 2026-07-07 addendum.
+- **Last-admin protection:** any update/delete that would leave no other *active* ADMIN → 409 `LAST_ADMIN_REQUIRED`.
 
 **Permissions matrix (dashboard)**
 
@@ -31,13 +37,13 @@
 | Coupons CRUD | ❌ | ✅ | ✅ |
 | Shipping zones CRUD | ❌ | ✅ | ✅ |
 | Orders: list/view all | ❌ | ✅ | ✅ |
-| Orders: change status / mark CASH paid | ❌ | ❌ | ✅ |
-| Customers table: view | ❌ | ✅ | ✅ |
+| Orders: change status / mark CASH paid | ❌ | ✅ | ✅ |
+| Customers: view / activate-deactivate | ❌ | ✅ | ✅ |
 | Customers: trigger Clerk password reset | ❌ | ✅ | ✅ |
-| Users: change role / activate-deactivate | ❌ | ❌ | ✅ |
-| Analytics / revenue overview | ❌ | ❌ | ✅ |
+| Users (staff): create / change role+active / delete | ❌ | ❌ | ✅ |
+| Dashboard metrics & analytics (revenue) | ❌ | ❌ | ✅ |
 
-Edge cases: ADMIN cannot demote or deactivate themselves (409 `SELF_MODIFICATION_FORBIDDEN`); MANAGER password-reset trigger applies only to `role = USER` accounts.
+Edge cases: no actor can modify, deactivate, or delete **themselves** (409 `SELF_MODIFICATION_FORBIDDEN`); password reset and customer activation apply only to `role = USER` targets (409 `FORBIDDEN_TARGET`).
 
 ---
 
@@ -50,8 +56,9 @@ Edge cases: ADMIN cannot demote or deactivate themselves (409 `SELF_MODIFICATION
 - SubCategory belongs to one Category; a Product's sub-categories **must** belong to the product's primary category (422 `SUBCATEGORY_CATEGORY_MISMATCH`).
 - `priceAfterDiscount` recomputed server-side on every product write; `discount` ∈ [0, 70].
 - Storefront listing returns only `status = ACTIVE`; dashboard listing returns all statuses.
-- Deleting a Category/SubCategory with products → 409 (Prisma `Restrict`). Deleting a Product referenced by any cart/order line → 409 `PRODUCT_IN_USE` with guidance to archive.
-- Image lifecycle: upload to Cloudinary via `UploadsService` (signed upload); on replace/delete, the old Cloudinary asset is destroyed by `imageId`. Gallery order = `sortOrder`.
+- Deleting a Category/SubCategory with products → 409 (Prisma `Restrict`). Deleting a Product referenced by any cart/order line **auto-archives instead of deleting**: `status = ARCHIVED`, `featured = false`, response reports `{ deleted, archived }` — one call, never a 409.
+- Duplicating a product (`POST /products/:id/duplicate`) copies pricing/stock/variants/category joins into a new `DRAFT` with name `"<source> (copy)"`, de-duplicated slug, `featured = false`, and blank images (admin uploads fresh ones).
+- Image lifecycle: upload to Cloudinary via `UploadsService` (signed upload); on replace/delete, the old Cloudinary asset is destroyed by `imageId` **best-effort, post-commit** (a Cloudinary failure never fails the request). Gallery order = `sortOrder`; full-form updates diff the gallery by Cloudinary `imageId` (delete missing / update matching / create new).
 
 **Storefront product listing** supports: pagination, `search` (name/description, `contains`, case-insensitive), `category`/`subCategory` (slug), `minPrice`/`maxPrice` (against `priceAfterDiscount`), `sizes`/`colors` (array overlap), `featured`, `sort` (`newest` default, `price_asc`, `price_desc`, `best_selling`, `top_rated`).
 
@@ -79,7 +86,7 @@ Edge cases: archiving a product does **not** remove it from existing carts — i
 
 **Purpose:** server-owned cart for guests and users; the only object checkout reads from.
 
-### Identity resolution (decided — see [ADR-0004](./ADR/ADR-0004-anonymous-cart-and-merge.md))
+### Identity resolution (decided — see [ADR-0004](./ADR-0004-anonymous-cart-and-merge.md))
 
 - **Registered:** cart keyed by `userId` (created lazily on first mutation).
 - **Anonymous:** on first cart mutation without auth, backend generates `sessionToken` (UUID v4) and creates the cart with `expiresAt = now() + 7 days`.
@@ -122,7 +129,9 @@ Merge is idempotent — a replayed request finds no anonymous cart and no-ops.
 
 **Release:** if the order is CANCELLED **before payment** (user cancel of pending CARD, admin cancel, or auto-expiry): decrement `usedCount`, delete the usage row. Cancelling/refunding after payment does not release usage.
 
-Edge cases: guest order claimed by a user → usage row keeps `anonEmail` (no transfer; prevents limit-evasion loops). Coupon deletion is blocked if orders reference it → deactivate instead (`isActive = false`); DB `SetNull` protects history regardless.
+**Dashboard lifecycle:** the admin list filters coupons by derived status — `active` (isActive, unexpired, not exhausted), `expired` (`expire <= now`), `exhausted` (`maxUsage > 0 AND usedCount >= maxUsage`), `deactivated` (`isActive = false`). Deactivation (`PATCH …/deactivate`) is one-way; there is no reactivate endpoint.
+
+Edge cases: guest order claimed by a user → usage row keeps `anonEmail` (no transfer; prevents limit-evasion loops). Coupon deletion is blocked once used (`usedCount > 0` → 409 `COUPON_IN_USE`) → deactivate instead (`isActive = false`); DB `SetNull` protects history regardless.
 
 ---
 
@@ -136,7 +145,7 @@ Edge cases: guest order claimed by a user → usage row keeps `anonEmail` (no tr
 2. **Validate lines:** every product `ACTIVE`; color/size still valid. Violations → 422 with per-line details (client refreshes cart).
 3. **Shipping fee:** look up ShippingZone by destination (registered: chosen Address must belong to the user; anonymous: `anon*` body fields). No active zone → 422 `SHIPPING_NOT_AVAILABLE`.
 4. **Coupon (optional):** full validation pipeline (§5) + atomic consumption.
-5. **Stock reservation (the concurrency guarantee — [ADR-0003](./ADR/ADR-0003-stock-reservation-strategy.md)):** for each line, atomic conditional decrement:
+5. **Stock reservation (the concurrency guarantee — [ADR-0003](./ADR-0003-stock-reservation-strategy.md)):** for each line, atomic conditional decrement:
    `UPDATE products SET quantity = quantity - :qty WHERE id = :id AND quantity >= :qty`
    Any line affecting 0 rows → **whole transaction rolls back** → 409 `INSUFFICIENT_STOCK` listing the failed lines, and the other customer is never charged. This is what makes "two carts, one unit, simultaneous checkout" safe: Postgres row locking serializes the two updates; exactly one succeeds.
 6. **Create order** + items (price snapshots from live `priceAfterDiscount`), `humanOrderId` from sequence, `totalOrderPrice = itemsSubtotal − discountApplied + shippingFees`.
@@ -148,13 +157,13 @@ Edge cases: guest order claimed by a user → usage row keeps `anonEmail` (no tr
 
 | | CASH (on delivery) | CARD (Geidea) |
 |---|---|---|
-| `isPaid` set by | ADMIN action (typically after delivery) | Geidea webhook only |
+| `isPaid` set by | dashboard mark-paid (MANAGER+, one-way — typically after delivery) | Geidea webhook only |
 | Post-checkout | order proceeds to fulfillment | client requests a payment session and opens Geidea Checkout |
 | If never paid | admin manages | cron cancels PENDING unpaid CARD orders after **60 min** → stock + coupon released |
 
 `sold` is incremented when `isPaid` flips to true (webhook / admin), decremented on REFUNDED.
 
-### Status state machine (ADMIN-only transitions)
+### Status state machine (dashboard transitions, MANAGER+)
 
 ```
 PENDING → PROCESSING → SHIPPED → DELIVERED → REFUNDED
@@ -230,9 +239,13 @@ Email sending is **post-commit and non-blocking**: failures are logged + retried
 
 ---
 
-## 11. Analytics (ADMIN only)
+## 11. Dashboard & Analytics (ADMIN only)
 
-MVP dashboard overview endpoint(s): revenue (paid orders) by period, order counts by status, top-selling products, low-stock list (`quantity ≤ threshold`), new customers by period. Read-only aggregations; heavier BI is out of scope.
+Read-only aggregations powering the admin dashboard; MANAGER → 403 on all of them. Heavier BI is out of scope.
+
+- **Dashboard metrics** (`GET /admin/dashboard/metrics`, single round trip): month-over-month KPIs (revenue, orders, new customers, avg order value — *current* = start of current calendar month → now, *previous* = the full previous month), pending-order count, low-stock count/list (`quantity < 10` and ACTIVE), active-coupon count, orders-by-status, trailing-30-day revenue series, 10 most recent orders, top 5 products by all-time item revenue (excl. cancelled/refunded).
+- **Analytics tabs** (`/admin/analytics/sales|products|customers|coupons|geography`): shared `from`/`to` range (default trailing 30 days, day-boundary resolution); series bucketed by day (≤ 60d), week (≤ 180d), or month, with the chosen `grouping` echoed. Geography groups on `COALESCE(shippingAddress.governorate, anonGovernorate)`.
+- **Money semantics:** monetary sums and product-level sales aggregates (revenue, units sold) exclude `CANCELLED`/`REFUNDED` orders so all revenue figures reconcile; order/redemption **counts** and discount totals include all statuses (deliberate asymmetry — endpoint-specific exceptions are noted in the API spec). Per-product/category revenue uses the order-item price snapshot (`quantity × price`); excluding refunds also matches `Product.sold`, which is decremented on refund. All values are plain JSON numbers, not decimal strings.
 
 ---
 

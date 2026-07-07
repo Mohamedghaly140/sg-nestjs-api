@@ -1,12 +1,12 @@
 # SG Couture — Development Phases
 
-> **Status:** Living document · **Last updated:** 2026-07-06
+> **Status:** Living document · **Last updated:** 2026-07-07
 >
 > 🤖 **Claude Code:** read this file **first** on every task. Work only within the active phase unless told otherwise. Update statuses and checklists immediately after completing work.
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–1 are complete.** Active phase: **Phase 2** (Catalog).
+**Current state:** **Phases 0–1 are complete.** Active phase: **Phase 2** (Catalog). Phase 1.5 (admin identity rework — new scope from the 2026-07-07 dashboard-contract merge) is queued and may be done before or alongside Phase 2.
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -36,7 +36,7 @@
 
 ## Phase 1 — Identity Sync & Authorization (Clerk) ✅
 
-**Purpose:** authenticated identity + roles for everything that follows. **This is the auth phase — note there are no register/login/password endpoints; Clerk owns those flows** ([ADR-0001](./ADR/ADR-0001-clerk-authentication.md)).
+**Purpose:** authenticated identity + roles for everything that follows. **This is the auth phase — note there are no register/login/password endpoints; Clerk owns those flows** ([ADR-0001](./ADR-0001-clerk-authentication.md)).
 **Dependencies:** Phase 0. **DB:** `users`.
 
 **Features / tasks**
@@ -46,11 +46,29 @@
 - [x] `POST /webhooks/clerk` — Svix verification, raw body, idempotent upsert/delete for `user.created|updated|deleted`
 - [x] Role mirror → Clerk `publicMetadata.role` on change
 - [x] `GET/PATCH /users/me`
-- [x] Admin users API: list/get, `PATCH /admin/users/:id/role` (ADMIN), `PATCH /admin/users/:id/status` (ADMIN), `POST /admin/users/:id/reset-password` (MANAGER+, random Clerk password + first-party notice, USER targets only)
+- [x] Admin users API: list/get, `PATCH /admin/users/:id/role` (ADMIN), `PATCH /admin/users/:id/status` (ADMIN), `POST /admin/users/:id/reset-password` (MANAGER+, random Clerk password + first-party notice, USER targets only) — *this surface is superseded by the Phase 1.5 customers/users split below*
 - [x] Self-modification protection (409)
 
 **Endpoints:** see [API_SPECIFICATION.md §2–3](./API_SPECIFICATION.md).
 **Acceptance criteria:** webhook replay-safe; deactivated user gets 403 everywhere; MANAGER cannot change roles; role change visible in Clerk metadata.
+
+---
+
+## Phase 1.5 — Admin Identity Rework (dashboard-contract merge) ⬜
+
+**Purpose:** restructure the Phase-1 admin user surface into the customers/users split required by the admin dashboard ([API_SPECIFICATION.md §3](./API_SPECIFICATION.md#3-users)).
+**Dependencies:** Phase 1. **DB:** none (Clerk + existing `users`).
+
+**Features / tasks**
+- [ ] `/admin/customers` module: paginated list (`search`, `active?`, implicit `role = USER`, `ordersCount`), detail (profile + addresses + order history), `PATCH :id/active` (Clerk ban/unban first, then DB; `SELF_MODIFICATION_FORBIDDEN` / `FORBIDDEN_TARGET`)
+- [ ] Move reset-password route to `POST /admin/customers/:id/reset-password` (behavior unchanged)
+- [ ] `/admin/users` (ADMIN): list all roles (`search`, `role?`, `active?`); replace the separate `/role` + `/status` patches with combined `PATCH /admin/users/:id { role, active }`
+- [ ] `POST /admin/users` — create account via Clerk (`createUser` first, then idempotent DB upsert; Clerk rejections → 422 with Clerk message)
+- [ ] `DELETE /admin/users/:id` — Clerk `deleteUser` first (Clerk 404 tolerated), then DB delete
+- [ ] Last-active-admin protection (409 `LAST_ADMIN_REQUIRED`) on staff update/delete; self-modification guards on all mutations
+- [ ] New error codes `LAST_ADMIN_REQUIRED`, `FORBIDDEN_TARGET` in `constants/error-codes.ts` (if missing)
+
+**Acceptance criteria:** staff accounts invisible on `/admin/customers/:id` (404); the last active ADMIN cannot be demoted/deactivated/deleted; a Clerk failure leaves the DB untouched (fault-injection test); MANAGER gets 403 on every `/admin/users` route.
 
 ---
 
@@ -61,13 +79,15 @@
 
 **Features / tasks**
 - [ ] UploadsModule (Cloudinary signed upload, destroy by `imageId`)
-- [ ] Categories + SubCategories CRUD (MANAGER+), public listing/detail by slug
-- [ ] Products CRUD (MANAGER+): slug generation, `priceAfterDiscount` computation, sub-category↔category validation, archive-instead-of-delete on 409
+- [ ] Categories + SubCategories CRUD (MANAGER+), public listing/detail by slug + paginated `GET /admin/categories` (search, nested sub-categories)
+- [ ] Products CRUD (MANAGER+): slug generation, `priceAfterDiscount` computation, sub-category↔category validation, **auto-archive on referenced delete** (200 `{ deleted, archived }`), gallery diff + sub-category reset on update
+- [ ] Admin product reads: `GET /admin/products` (search/status/categoryId/featured), `filter-options`, `form-data`, `GET /admin/products/:id` (detail) + `:id/form` (edit-form shape)
+- [ ] Product actions: `POST :id/duplicate` (DRAFT copy, blank images), `PATCH :id/featured`, `PATCH :id/status`
 - [ ] Product gallery endpoints (add, delete, reorder)
 - [ ] Public product listing with full filter/sort/pagination set (FEATURES.md §2) + product detail by slug
 - [ ] Seed data expansion
 
-**Acceptance criteria:** DRAFT/ARCHIVED invisible on storefront routes; filters combine correctly (e2e matrix); deleting referenced category/product returns documented 409s; Cloudinary assets destroyed on replace.
+**Acceptance criteria:** DRAFT/ARCHIVED invisible on storefront routes; filters combine correctly (e2e matrix); deleting a referenced category returns the documented 409 while a referenced product auto-archives; duplicate produces a DRAFT with de-duplicated slug and no images; Cloudinary assets destroyed on replace (best-effort, never failing the request).
 
 ---
 
@@ -88,7 +108,7 @@
 
 ## Phase 4 — Cart ⬜
 
-**Purpose:** the server-owned cart both storefronts share; anonymous support + merge ([ADR-0004](./ADR/ADR-0004-anonymous-cart-and-merge.md)).
+**Purpose:** the server-owned cart both storefronts share; anonymous support + merge ([ADR-0004](./ADR-0004-anonymous-cart-and-merge.md)).
 **Dependencies:** Phase 2. **DB:** `carts`, `cartItems`.
 
 **Features / tasks**
@@ -110,7 +130,8 @@
 **Dependencies:** Phase 1 (roles). **DB:** `coupons`, `couponUsages`, `shippingZones`.
 
 **Features / tasks**
-- [ ] Coupons CRUD (MANAGER+; uppercase normalization; deactivate instead of delete when referenced)
+- [ ] Coupons CRUD (MANAGER+; uppercase normalization; `expire` future-only on create; delete blocked once used → 409 `COUPON_IN_USE`)
+- [ ] Admin coupon list: `search` + derived lifecycle `status` filter (`active|expired|exhausted|deactivated`) + `PATCH /admin/coupons/:id/deactivate` (one-way)
 - [ ] `POST /coupons/validate` public preview (auth optional; per-user check uses userId or provided email)
 - [ ] Race-safe consumption + release primitives (used by Phase 6)
 - [ ] Shipping zones CRUD (MANAGER+) + public fee lookup endpoint
@@ -122,7 +143,7 @@
 
 ## Phase 6 — Checkout & Orders ⬜
 
-**Purpose:** the core money path — registered + anonymous checkout, atomic stock, order lifecycle, guest claiming ([ADR-0003](./ADR/ADR-0003-stock-reservation-strategy.md)).
+**Purpose:** the core money path — registered + anonymous checkout, atomic stock, order lifecycle, guest claiming ([ADR-0003](./ADR-0003-stock-reservation-strategy.md)).
 **Dependencies:** Phases 4 & 5. **DB:** `orders`, `orderItems`, sequence.
 
 **Features / tasks**
@@ -131,7 +152,7 @@
 - [ ] `order.created` event (email hookup lands in Phase 8; event emitted now)
 - [ ] My orders: list + detail; guest order fetch by token
 - [ ] User self-cancel (PENDING + unpaid)
-- [ ] Admin orders: list/filter, detail, status transitions with full state machine + stock/coupon restoration, mark CASH paid (ADMIN)
+- [ ] Admin orders (MANAGER+): list/filter (merged search over humanOrderId/customer name/email/phone; `customerName` + `itemsCount` in rows), full detail (user/address/anon fields/coupon/payment refs), status transitions with full state machine + optional `notes` + stock/coupon restoration, one-way mark CASH paid
 - [ ] Guest claiming endpoint (auth required; sets userId + audit; nulls token)
 - [ ] Cron: expire unpaid CARD orders (60 min) with restoration; guest-token cleanup
 
@@ -141,7 +162,7 @@
 
 ## Phase 7 — Payments (Geidea) ⬜
 
-**Purpose:** card payments via Geidea Checkout ([ADR-0002](./ADR/ADR-0002-geidea-payment-gateway.md)).
+**Purpose:** card payments via Geidea Checkout ([ADR-0002](./ADR-0002-geidea-payment-gateway.md)).
 **Dependencies:** Phase 6, Geidea merchant sandbox credentials. **DB:** `geideaSessionId`, `geideaOrderId` (Migration 001).
 
 **Features / tasks**
@@ -184,7 +205,7 @@
 
 ## Phase 10 — Analytics & Dashboard ⬜ · Phase 11 — Hardening & Launch ⬜
 
-**Phase 10 (ADMIN):** overview endpoint(s) — revenue by period (paid orders), orders by status, top sellers, low stock, new customers. Acceptance: numbers reconcile with seeded fixtures; MANAGER gets 403.
+**Phase 10 (ADMIN):** `GET /admin/dashboard/metrics` (single aggregate call: month-over-month KPIs, pending/low-stock/active-coupon counts, orders-by-status, trailing-30-day revenue series, recent orders, top products) + the five analytics endpoints (`/admin/analytics/sales|products|customers|coupons|geography`) with shared `from`/`to` range and day/week/month bucket grouping — see [API_SPECIFICATION.md §14](./API_SPECIFICATION.md#14-dashboard--analytics-all-auth-admin--manager--403-by-design). Acceptance: numbers reconcile with seeded fixtures (revenue excludes CANCELLED/REFUNDED, counts don't); MANAGER gets 403 on all of them.
 
 **Phase 11:** stricter per-route throttles (checkout, coupon validate, webhooks); security review pass ([CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security)); load test on checkout concurrency; coverage targets met (services ≥ 80%, money paths ≥ 95%); deployment config + runbook; final docs audit (incl. OpenAPI spec complete and accurate for all endpoints). Acceptance: launch checklist signed off.
 
@@ -196,6 +217,7 @@
 
 - [x] Phase 0 — Foundation
 - [x] Phase 1 — Identity & Authorization (Clerk)
+- [ ] Phase 1.5 — Admin Identity Rework (customers/users split)
 - [ ] Phase 2 — Catalog
 - [ ] Phase 3 — Reviews & Wishlist
 - [ ] Phase 4 — Cart

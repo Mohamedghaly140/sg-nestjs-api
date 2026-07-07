@@ -1,6 +1,6 @@
 # SG Couture — Coding Standards
 
-> **Status:** Living document · **Last updated:** 2026-07-06 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing, API documentation (Swagger).
+> **Status:** Living document · **Last updated:** 2026-07-07 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing, API documentation (Swagger).
 
 ## 1. Naming Conventions
 
@@ -83,7 +83,7 @@ Pagination meta (always this shape):
 | 401 | Missing/invalid Clerk JWT; unsigned webhook | `UNAUTHENTICATED`, `INVALID_WEBHOOK_SIGNATURE` |
 | 403 | Authenticated but not allowed | `FORBIDDEN`, `ACCOUNT_DISABLED` |
 | 404 | Resource not found / not visible to caller | `RESOURCE_NOT_FOUND`, `CLAIM_TOKEN_INVALID` |
-| 409 | State conflict | `DUPLICATE_RESOURCE`, `INSUFFICIENT_STOCK`, `COUPON_EXHAUSTED`, `COUPON_USER_LIMIT`, `REVIEW_EXISTS`, `PRODUCT_IN_USE`, `INVALID_STATUS_TRANSITION`, `SELF_MODIFICATION_FORBIDDEN` |
+| 409 | State conflict | `DUPLICATE_RESOURCE`, `INSUFFICIENT_STOCK`, `COUPON_EXHAUSTED`, `COUPON_USER_LIMIT`, `COUPON_IN_USE`, `REVIEW_EXISTS`, `INVALID_STATUS_TRANSITION`, `SELF_MODIFICATION_FORBIDDEN`, `FORBIDDEN_TARGET`, `LAST_ADMIN_REQUIRED` |
 | 422 | Well-formed but semantically invalid | `VALIDATION_ERROR`, `CART_EMPTY`, `SHIPPING_NOT_AVAILABLE`, `COUPON_EXPIRED`, `COUPON_INACTIVE`, `SUBCATEGORY_CATEGORY_MISMATCH`, `INVALID_VARIANT` |
 | 429 | Throttled | `RATE_LIMITED` |
 | 500 | Unhandled | `INTERNAL_ERROR` |

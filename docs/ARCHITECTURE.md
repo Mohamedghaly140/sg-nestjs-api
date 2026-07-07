@@ -9,8 +9,8 @@
 | **NestJS 11** | HTTP framework | Opinionated module system, first-class DI, guards/pipes/interceptors map cleanly onto our cross-cutting needs; TypeScript-native |
 | **PostgreSQL** | Database | Relational integrity for orders/stock; transactions + row-level atomic updates are the backbone of the stock-reservation strategy |
 | **Prisma** | ORM | Type-safe queries, migration workflow, matches the provided schema; client generated to `src/generated/prisma` |
-| **Clerk** | Identity provider | Owns sign-up/sign-in/passwords/sessions/verification; removes an entire attack surface from this codebase. See [ADR-0001](./ADR/ADR-0001-clerk-authentication.md) |
-| **Geidea** | Payment gateway (Egypt) | Local gateway with EGP + Meeza support, hosted checkout keeps us out of PCI scope. See [ADR-0002](./ADR/ADR-0002-geidea-payment-gateway.md) |
+| **Clerk** | Identity provider | Owns sign-up/sign-in/passwords/sessions/verification; removes an entire attack surface from this codebase. See [ADR-0001](./ADR-0001-clerk-authentication.md) |
+| **Geidea** | Payment gateway (Egypt) | Local gateway with EGP + Meeza support, hosted checkout keeps us out of PCI scope. See [ADR-0002](./ADR-0002-geidea-payment-gateway.md) |
 | **Cloudinary** | Asset storage | Product/category images, invoices; `imageId` = public_id enables deletes/transforms |
 | **Resend** | Transactional email | Order confirmations, guest claim links |
 | **class-validator + class-transformer** | Validation | DTO-level declarative validation via global `ValidationPipe` |

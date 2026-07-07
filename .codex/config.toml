@@ -1,0 +1,8 @@
+[mcp_servers.Prisma]
+url = "https://mcp.prisma.io/mcp"
+
+[mcp_servers.clerk]
+url = "https://mcp.clerk.com/mcp"
+
+[mcp_servers.prisma]
+url = "https://mcp.prisma.io/mcp"
