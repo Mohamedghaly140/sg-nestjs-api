@@ -1,12 +1,12 @@
 # SG Couture — Development Phases
 
-> **Status:** Living document · **Last updated:** 2026-07-07
+> **Status:** Living document · **Last updated:** 2026-07-08
 >
 > 🤖 **Claude Code:** read this file **first** on every task. Work only within the active phase unless told otherwise. Update statuses and checklists immediately after completing work.
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–1.5 are complete.** Active phase: **Phase 2** (Catalog).
+**Current state:** **Phases 0–2 are complete.** Active phase: **Phase 3** (Reviews & Wishlist).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -19,7 +19,7 @@
 
 **Features / tasks**
 - [x] NestJS scaffold, strict TS config, ESLint + Prettier
-- [x] `ConfigModule` with env validation (fail-fast on boot) — full list in [CODING_STANDARDS.md §Environment Variables](./CODING_STANDARDS.md#environment-variables). Required now: `NODE_ENV`, `PORT`, `DATABASE_URL`, `CORS_ORIGINS`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`; `DIRECT_URL` is optional and CLI-only; other vars are typed/defaulted but optional until their phase lands.
+- [x] `ConfigModule` with env validation (fail-fast on boot) — full list in [CODING_STANDARDS.md §Environment Variables](./CODING_STANDARDS.md#environment-variables). Required now: `NODE_ENV`, `PORT`, `DATABASE_URL`, `CORS_ORIGINS`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`, and Phase 2 `CLOUDINARY_*`; `DIRECT_URL` is optional and CLI-only; other vars are typed/defaulted but optional until their phase lands.
 - [x] `PrismaModule` + provided schema + **Migration 001** ([DATABASE.md §4](./DATABASE.md#4-required-schema-changes-migration-001--before-phase-67): Geidea fields, Coupon.perUserLimit + CouponUsage, ShippingZone, order sequence, extra indexes) — applied via `prisma/migrations/20260704231931_init`; `src/prisma/{prisma.module.ts,prisma.service.ts}` use `@prisma/adapter-pg` and validated injected database config; client generation targets `src/generated/prisma`; the shipping-zone partial unique index is schema-declared.
 - [x] Phase 0 Prisma review hardening — fresh/no-env generation, production-only install-safe postinstall, Jest generated-client mapping, normal `dist/main.js` output, and build/lint coverage for `prisma.config.ts`.
 - [x] Global prefix `/api` + URI versioning `v1`; helmet; CORS allow-list from env
@@ -72,20 +72,20 @@
 
 ---
 
-## Phase 2 — Catalog ⬜
+## Phase 2 — Catalog ✅
 
 **Purpose:** categories, sub-categories, products, images — the storefront's read model and the dashboard's first write surface.
 **Dependencies:** Phase 1 (role guards), Cloudinary account. **DB:** `categories`, `subCategories`, `products`, `productImages`, `productSubCategories`.
 
 **Features / tasks**
-- [ ] UploadsModule (Cloudinary signed upload, destroy by `imageId`)
-- [ ] Categories + SubCategories CRUD (MANAGER+), public listing/detail by slug + paginated `GET /admin/categories` (search, nested sub-categories)
-- [ ] Products CRUD (MANAGER+): slug generation, `priceAfterDiscount` computation, sub-category↔category validation, **auto-archive on referenced delete** (200 `{ deleted, archived }`), gallery diff + sub-category reset on update
-- [ ] Admin product reads: `GET /admin/products` (search/status/categoryId/featured), `filter-options`, `form-data`, `GET /admin/products/:id` (detail) + `:id/form` (edit-form shape)
-- [ ] Product actions: `POST :id/duplicate` (DRAFT copy, blank images), `PATCH :id/featured`, `PATCH :id/status`
-- [ ] Product gallery endpoints (add, delete, reorder)
-- [ ] Public product listing with full filter/sort/pagination set (FEATURES.md §2) + product detail by slug
-- [ ] Seed data expansion
+- [x] UploadsModule (Cloudinary signed upload, destroy by `imageId`)
+- [x] Categories + SubCategories CRUD (MANAGER+), public listing/detail by slug + paginated `GET /admin/categories` (search, nested sub-categories)
+- [x] Products CRUD (MANAGER+): slug generation, `priceAfterDiscount` computation, sub-category↔category validation, **auto-archive on referenced delete** (200 `{ deleted, archived }`), gallery diff + sub-category reset on update
+- [x] Admin product reads: `GET /admin/products` (search/status/categoryId/featured), `filter-options`, `form-data`, `GET /admin/products/:id` (detail) + `:id/form` (edit-form shape)
+- [x] Product actions: `POST :id/duplicate` (DRAFT copy, blank images), `PATCH :id/featured`, `PATCH :id/status`
+- [x] Product gallery endpoints (add, delete, reorder)
+- [x] Public product listing with full filter/sort/pagination set (FEATURES.md §2) + product detail by slug
+- [x] Seed data expansion
 
 **Acceptance criteria:** DRAFT/ARCHIVED invisible on storefront routes; filters combine correctly (e2e matrix); deleting a referenced category returns the documented 409 while a referenced product auto-archives; duplicate produces a DRAFT with de-duplicated slug and no images; Cloudinary assets destroyed on replace (best-effort, never failing the request).
 
@@ -218,7 +218,7 @@
 - [x] Phase 0 — Foundation
 - [x] Phase 1 — Identity & Authorization (Clerk)
 - [x] Phase 1.5 — Admin Identity Rework (customers/users split)
-- [ ] Phase 2 — Catalog
+- [x] Phase 2 — Catalog
 - [ ] Phase 3 — Reviews & Wishlist
 - [ ] Phase 4 — Cart
 - [ ] Phase 5 — Coupons & Shipping

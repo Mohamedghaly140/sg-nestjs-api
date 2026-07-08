@@ -9,6 +9,9 @@ describe('env.validation', () => {
     CORS_ORIGINS: 'http://localhost:3000',
     CLERK_SECRET_KEY: 'sk_test_xxx',
     CLERK_WEBHOOK_SECRET: 'whsec_xxx',
+    CLOUDINARY_CLOUD_NAME: 'sg-couture-test',
+    CLOUDINARY_API_KEY: 'test-api-key',
+    CLOUDINARY_API_SECRET: 'test-api-secret',
   };
 
   it('throws when a required variable is missing', () => {
@@ -49,5 +52,6 @@ describe('env.validation', () => {
     expect(config.GUEST_TOKEN_TTL_DAYS).toBe(30);
     expect(config.ANON_CART_TTL_DAYS).toBe(7);
     expect(config.GEIDEA_MERCHANT_PUBLIC_KEY).toBeUndefined();
+    expect(config.CLOUDINARY_CLOUD_NAME).toBe('sg-couture-test');
   });
 });

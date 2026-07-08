@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **SG Couture backend**: a standalone NestJS + PostgreSQL + Prisma REST API serving the SG Couture e-commerce storefront (web + future React Native mobile app) and admin dashboard.
 
-**Current state:** Phase 0 (`docs/DEVELOPMENT_PHASES.md`) is complete. Active phase: **Phase 1 — Identity Sync & Authorization (Clerk)**.
+**Current state:** Phases 0–2 (`docs/DEVELOPMENT_PHASES.md`) are complete. Active phase: **Phase 3 — Reviews & Wishlist**.
 
 ## Engineering Approach
 
 - Act as a senior NestJS developer. Always apply NestJS-first patterns and architecture decisions (modules, providers, DI, guards, interceptors, pipes, exception filters) — never fall back to generic Node.js/Express-style approaches when a NestJS-idiomatic one exists.
 - When stuck, or before implementing against a library/framework you're unsure about, check your available agents — especially **`docs-explorer`** — to pull fresh documentation rather than relying on possibly stale memory.
+- Before committing to any architecture decision, schema migration, or refactor touching 3+ files, consult the **`fable-advisor`** subagent and act on its verdict — treat a `Flag` as blocking until resolved (fix the plan, or explain to the user why the flag doesn't apply) before writing code.
 
 ## Documentation Map (READ BEFORE CODING)
 

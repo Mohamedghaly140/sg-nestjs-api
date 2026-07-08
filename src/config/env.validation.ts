@@ -20,8 +20,9 @@ enum Environment {
 }
 
 /**
- * Only NODE_ENV, PORT, DATABASE_URL, CORS_ORIGINS, CLERK_SECRET_KEY and
- * CLERK_WEBHOOK_SECRET are required to boot right now (docs/CODING_STANDARDS.md §7).
+ * NODE_ENV, PORT, DATABASE_URL, CORS_ORIGINS, CLERK_SECRET_KEY,
+ * CLERK_WEBHOOK_SECRET and Phase 2 Cloudinary credentials are required to boot
+ * right now (docs/CODING_STANDARDS.md §7).
  * Every other documented var is typed/defaulted but optional until its owning
  * phase's module lands (Phase 1 optionally uses Resend for admin password-reset
  * notices; Phase 2 Cloudinary, Phase 7 Geidea, Phase 8 full Resend/mail).
@@ -79,20 +80,17 @@ export class EnvironmentVariables {
   @IsUrl({ require_tld: false })
   GEIDEA_CALLBACK_URL?: string;
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  CLOUDINARY_CLOUD_NAME?: string;
+  CLOUDINARY_CLOUD_NAME: string;
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  CLOUDINARY_API_KEY?: string;
+  CLOUDINARY_API_KEY: string;
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  CLOUDINARY_API_SECRET?: string;
+  CLOUDINARY_API_SECRET: string;
 
   @IsOptional()
   @IsString()

@@ -313,10 +313,86 @@ async function seed() {
       },
     });
 
+    // Phase 2 seed expansion: extra ACTIVE products so storefront
+    // listing/filter/sort surfaces have data to work with out of the box.
+    const catalogProducts = [
+      {
+        slug: 'pleated-chiffon-gown',
+        name: 'Pleated Chiffon Gown',
+        description:
+          'Airy pleated chiffon gown with a cinched waist and flowing skirt.',
+        quantity: 6,
+        sold: 7,
+        price: '3200.00',
+        discount: '20.00',
+        priceAfterDiscount: discountedPrice(320_000, 20),
+        sizes: ['S', 'M'],
+        colors: ['Navy', 'Blush'],
+        ratingsAverage: '4.8',
+        ratingsQuantity: 5,
+        featured: true,
+        categoryId: dresses.id,
+        subCategoryId: eveningDresses.id,
+      },
+      {
+        slug: 'floral-tea-day-dress',
+        name: 'Floral Tea Day Dress',
+        description:
+          'Knee-length day dress in a soft floral print with short sleeves.',
+        quantity: 15,
+        sold: 10,
+        price: '1450.00',
+        discount: '5.00',
+        priceAfterDiscount: discountedPrice(145_000, 5),
+        sizes: ['S', 'M', 'L', 'XL'],
+        colors: ['Sage', 'Ivory'],
+        ratingsAverage: '4.2',
+        ratingsQuantity: 3,
+        featured: false,
+        categoryId: dresses.id,
+        subCategoryId: dayDresses.id,
+      },
+      {
+        slug: 'silk-button-down-blouse',
+        name: 'Silk Button-Down Blouse',
+        description:
+          'Classic silk blouse with mother-of-pearl buttons and a relaxed fit.',
+        quantity: 20,
+        sold: 3,
+        price: '950.00',
+        discount: '0.00',
+        priceAfterDiscount: discountedPrice(95_000, 0),
+        sizes: ['XS', 'S', 'M'],
+        colors: ['White', 'Black'],
+        ratingsAverage: null,
+        ratingsQuantity: 0,
+        featured: false,
+        categoryId: separates.id,
+        subCategoryId: blouses.id,
+      },
+    ];
+
+    const extraSubCategoryJoins: Array<readonly [string, string]> = [];
+    for (const { subCategoryId, ...product } of catalogProducts) {
+      const data = {
+        ...product,
+        imageId: `seed/products/${product.slug}/cover`,
+        imageUrl: `https://res.cloudinary.com/demo/image/upload/${product.slug}.jpg`,
+        status: ProductStatus.ACTIVE,
+      };
+      const created = await prisma.product.upsert({
+        where: { slug: product.slug },
+        update: data,
+        create: data,
+      });
+      extraSubCategoryJoins.push([created.id, subCategoryId] as const);
+    }
+
     const productSubCategories = [
       [satinDress.id, eveningDresses.id],
       [linenBlouse.id, blouses.id],
       [velvetDress.id, dayDresses.id],
+      ...extraSubCategoryJoins,
     ] as const;
 
     for (const [productId, subCategoryId] of productSubCategories) {
@@ -595,7 +671,7 @@ async function seed() {
 
     console.log(
       'Seed complete: 3 users, 1 address, 2 categories, 3 subcategories, ' +
-        '3 products, 4 product images, 2 reviews, 2 coupons, ' +
+        '6 products, 4 product images, 2 reviews, 2 coupons, ' +
         '2 shipping zones, 2 orders, 2 order items.',
     );
   } finally {

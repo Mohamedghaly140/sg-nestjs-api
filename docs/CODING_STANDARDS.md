@@ -128,7 +128,7 @@ Prisma mapping (in `PrismaExceptionFilter`): `P2002`→409, `P2025`→404, `P200
 | `GEIDEA_API_PASSWORD` | Geidea API password (auth + HMAC signing) |
 | `GEIDEA_BASE_URL` | Geidea environment base URL (sandbox vs production) |
 | `GEIDEA_CALLBACK_URL` | Public URL of `/api/v1/webhooks/geidea` |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Cloudinary credentials |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Required Cloudinary credentials for Phase 2 catalog uploads |
 | `RESEND_API_KEY` | Resend API key |
 | `MAIL_FROM` | Sender identity, e.g. `SG Couture <orders@sgcouture.com>` |
 | `STOREFRONT_URL` | Base URL for claim links / email CTAs |
@@ -136,7 +136,7 @@ Prisma mapping (in `PrismaExceptionFilter`): `P2002`→409, `P2025`→404, `P200
 | `GUEST_TOKEN_TTL_DAYS` | Claim token validity (default 30) |
 | `ANON_CART_TTL_DAYS` | Anonymous cart TTL (default 7) |
 
-All are validated in `config/env.validation.ts` when present. Boot currently requires the Phase 0 runtime variables listed in `docs/DEVELOPMENT_PHASES.md`; `DIRECT_URL` is optional because only Prisma CLI database commands use it.
+All are validated in `config/env.validation.ts` when present. Boot currently requires the Phase 0 runtime variables listed in `docs/DEVELOPMENT_PHASES.md` plus the Phase 2 `CLOUDINARY_*` variables; `DIRECT_URL` is optional because only Prisma CLI database commands use it.
 
 ## 8. Testing Strategy
 

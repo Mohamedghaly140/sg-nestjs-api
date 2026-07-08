@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
+import { parseBooleanQuery } from '../../../common/utils/parse-boolean-query';
 
 export class QueryAdminCustomersDto extends PaginationQueryDto {
   @ApiPropertyOptional({
@@ -23,11 +24,7 @@ export class QueryAdminCustomersDto extends PaginationQueryDto {
     example: true,
   })
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @Transform(parseBooleanQuery)
   @IsBoolean()
   active?: boolean;
 }

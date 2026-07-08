@@ -4,7 +4,7 @@ This file provides repository-wide guidance for Codex and other coding agents wo
 
 This is the **SG Couture backend**: a standalone NestJS + PostgreSQL + Prisma REST API serving the SG Couture e-commerce storefront (web + future React Native mobile app) and admin dashboard.
 
-**Current state:** Phase 0 is in progress. Dependencies, validated configuration, PrismaModule, and the initial migrations are implemented; bootstrap wiring, global pipes/interceptors/filters, HealthModule, and seed data remain.
+**Current state:** Phases 0–2 (`docs/DEVELOPMENT_PHASES.md`) are complete. Active phase: **Phase 3 — Reviews & Wishlist**.
 
 ## Engineering Approach
 

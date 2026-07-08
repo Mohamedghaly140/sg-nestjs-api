@@ -2,6 +2,19 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-08 — Phase 2 · Admin catalog route namespace fix
+
+- Moved 15 admin-only catalog mutation routes from unprefixed paths to `/admin/...` to match the established admin-controller URL convention: 9 product write/action/gallery routes, 3 category routes, and 3 sub-category routes.
+- Guards and behavior are unchanged: these routes were already Manager+ via `@Roles(...MANAGER_PLUS)`, and this was only a URL namespace/controller-organization refactor.
+- Files touched: product/category admin controllers and module wiring (`admin-products.controller.ts`, `products.module.ts`, `admin-categories.controller.ts`, `categories.controller.ts`, `admin-sub-categories.controller.ts`, `categories.module.ts`), removed the old unprefixed management controllers, updated `API_SPECIFICATION.md`, and adjusted the admin product/category e2e request URLs.
+
+## 2026-07-08 — Phase 2 · Catalog implementation
+
+- Added Phase 2 catalog modules: Cloudinary signed-upload/destroy support, public/admin category and sub-category APIs, public product listing/detail, admin product reads, product CRUD/actions, gallery add/remove/reorder, slug de-duplication, server-side discounted price calculation, sub-category/category validation, and product auto-archive on referenced delete.
+- Added focused unit coverage for slug/pricing/filter utilities, uploads service, category image cleanup, sub-category product guards, and product gallery/archive/duplicate logic; added the five requested e2e specs with Clerk/Cloudinary fakes and real-Prisma fixture setup. E2E suites now run serially (`maxWorkers: 1` in `test/jest-e2e.json`) because they share one database.
+- Environment: added the `cloudinary` SDK (2.10.0) and promoted `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` to required boot variables. Upload signatures use SHA-256 via `signature_algorithm` in the provider's `config()` call.
+- Docs touched: `API_SPECIFICATION.md` (category detail/product detail/signature shapes), `DEVELOPMENT_PHASES.md` (Phase 2 checked complete), `CODING_STANDARDS.md` (Cloudinary env requirement), this changelog. No Prisma schema or migration changes; `DATABASE.md` unchanged.
+
 ## 2026-07-07 — Phase 1.5 · Admin identity rework (customers/users split)
 
 - Split the Phase-1 admin user surface per the dashboard contract (`API_SPECIFICATION.md §3`): new `/admin/customers` (Manager+, implicit `role = USER`) with paginated list (`search` over name/email/phone, `active?`, `ordersCount` via `_count`), detail (profile + addresses + order history with `itemsCount`, staff ids → 404), `PATCH :id/active` (Clerk `banUser`/`unbanUser` first, then DB), and the reset-password route moved here unchanged; reworked `/admin/users` (Admin-only) with all-roles list (search over name/email only), `POST` create-via-Clerk (name split, username derived from the email local part, `publicMetadata.role`; Clerk 4xx → 422 `VALIDATION_ERROR` with Clerk's message; idempotent DB upsert setting `role`), combined `PATCH :id { role, active }` replacing the separate `/role`/`/status` patches, and `DELETE :id` (Clerk first, Clerk 404 tolerated for DB-only rows). Added error code `LAST_ADMIN_REQUIRED`; `UsersService` slimmed to `getMe`/`updateMe`.

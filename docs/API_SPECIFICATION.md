@@ -169,10 +169,14 @@ Set as default · Success (200): address · Notes: transactional unset-others.
 
 ### GET /categories
 Public tree listing (with sub-categories, product counts) · Auth: Public
-Success (200): `data: [{ id, name, slug, imageUrl, subCategories: [...] }]`
+Success (200): `data: [{ id, name, slug, imageUrl, productCount, subCategories: [{ id, name, slug, productCount }] }]`
+Notes: `productCount` values include ACTIVE products only.
 
 ### GET /categories/:slug
 Category detail · Auth: Public
+Success (200): `data: { id, name, slug, imageUrl, productCount, subCategories: [{ id, name, slug, productCount }] }`
+Errors: 404 `RESOURCE_NOT_FOUND`
+Notes: `productCount` values include ACTIVE products only.
 
 ### GET /admin/categories
 Dashboard listing (paginated, with sub-categories) · Auth: Manager+
@@ -181,17 +185,17 @@ Success (200): `data: [{ id, name, slug, imageId, imageUrl, createdAt, subCatego
 Notes: ordered `createdAt` desc; `subCategories` name asc; `imageId`/`imageUrl` nullable.
 Swagger: `List categories for administration` · `@ApiResponse` 200 · query/response DTOs documented
 
-### POST /categories
+### POST /admin/categories
 Create · Auth: Manager+ · Body: `{ name, imageId?, imageUrl? }`
 Success (201) · Errors: 409 `DUPLICATE_RESOURCE` (name/slug)
 Notes: slug server-generated.
 
-### PATCH /categories/:id · DELETE /categories/:id
+### PATCH /admin/categories/:id · DELETE /admin/categories/:id
 Update / delete · Auth: Manager+
 DELETE Errors: 409 `FOREIGN_KEY_CONSTRAINT` (has sub-categories/products) · Success (204)
 Notes: replacing image destroys the old Cloudinary asset.
 
-### POST /sub-categories · PATCH /sub-categories/:id · DELETE /sub-categories/:id
+### POST /admin/sub-categories · PATCH /admin/sub-categories/:id · DELETE /admin/sub-categories/:id
 CRUD · Auth: Manager+ · Body (create): `{ name, categoryId }`
 Errors: create/update 409 `DUPLICATE_RESOURCE`; delete 409 `FOREIGN_KEY_CONSTRAINT` (has products)
 
@@ -207,8 +211,9 @@ Notes: `quantity` exposed for UX (low-stock badges); advisory only.
 
 ### GET /products/:slug
 Product detail (ACTIVE only on this route) · Auth: Public
-Success (200): full product + `images[]` (sorted) + category/subCategories
+Success (200): `{ id, name, slug, description, imageUrl, price, discount, priceAfterDiscount, ratingsAverage, ratingsQuantity, featured, sizes, colors, quantity, category: { id, name, slug }, subCategories: [{ id, name, slug }], images: [{ id, imageId, imageUrl, sortOrder }] }`
 Errors: 404 for DRAFT/ARCHIVED
+Notes: `images[]` is sorted by `sortOrder asc`; money fields are JSON strings from Prisma Decimal serialization.
 
 ### GET /admin/products
 Dashboard listing (all statuses) · Auth: Manager+
@@ -238,19 +243,19 @@ Success (200): `{ id, name, slug, description, price, discount, priceAfterDiscou
 Notes: unlike the detail route this exposes Cloudinary `imageId`s and raw `categoryId`/`subCategoryIds`; gallery sortOrder asc.
 Swagger: `Get a product in edit-form shape` · `@ApiResponse` 200 · path param/form DTO documented
 
-### POST /products
+### POST /admin/products
 Create · Auth: Manager+
 Body: `{ name, description, quantity, price, discount?, sizes[], colors[], imageId, imageUrl, status?, featured?, categoryId, subCategoryIds?[] }`
 Validation: discount 0–70; subCategoryIds must belong to categoryId (422 `SUBCATEGORY_CATEGORY_MISMATCH`)
 Success (201): product
 Notes: slug + priceAfterDiscount computed server-side. **Never accept priceAfterDiscount/sold/ratings from clients.**
 
-### PATCH /products/:id
+### PATCH /admin/products/:id
 Partial update · Auth: Manager+
 Request body: any subset of the create fields + optional `images[]` (`{ imageId, imageUrl, sortOrder? }`)
 Notes: price/discount change recomputes priceAfterDiscount; existing carts/orders keep their snapshots; live cart totals reflect new price on next recompute. When `images[]` is sent, the gallery is **diffed by Cloudinary `imageId`** in one transaction: rows whose `imageId` is absent from the payload are deleted, matching rows are updated (`imageUrl`, `sortOrder`), new `imageId`s are created. When `subCategoryIds[]` is sent, the join set is reset (delete all, recreate). After commit, removed gallery assets and a replaced main `imageId` are destroyed in Cloudinary (best-effort — a Cloudinary failure never fails the request).
 
-### DELETE /products/:id
+### DELETE /admin/products/:id
 Delete, or auto-archive when referenced · Auth: Manager+
 Success (200):
 ```json
@@ -259,7 +264,7 @@ Success (200):
 ```
 Notes: when any order/cart line references the product (checked up-front, and on FK-restriction failure as fallback) it is **not** deleted — `status = ARCHIVED`, `featured = false` are set instead and the response says so. A hard delete destroys the main image + all gallery assets in Cloudinary (best-effort). Idempotent; never returns 409.
 
-### POST /products/:id/duplicate
+### POST /admin/products/:id/duplicate
 Duplicate a product as a draft · Auth: Manager+
 Request body: —
 Success (201): new product
@@ -267,33 +272,33 @@ Errors: 404 (source missing)
 Notes: copies `description`, `price`, `discount`, `priceAfterDiscount`, `quantity`, `sizes`, `colors`, `categoryId` and sub-category joins; name = `"<source name> (copy)"`, slug from `"<source-slug>-copy"` de-duplicated; forces `status = DRAFT`, `featured = false`, blank images (`imageId`/`imageUrl` empty, no gallery rows). Single transaction.
 Swagger: `Duplicate a product as a draft` · `@ApiResponse` 201/404 · path param/response DTO documented
 
-### PATCH /products/:id/featured
+### PATCH /admin/products/:id/featured
 Toggle the featured flag · Auth: Manager+
 Request body: `{ "featured": boolean }`
 Success (200): `{ "id", "featured" }`
 Swagger: `Set a product featured flag` · `@ApiResponse` 200 · path param/request DTOs documented
 
-### PATCH /products/:id/status
+### PATCH /admin/products/:id/status
 Set the product status directly · Auth: Manager+
 Request body: `{ "status": "DRAFT" | "ACTIVE" | "ARCHIVED" }`
 Success (200): `{ "id", "status" }`
 Notes: no transition restrictions — any status can be set.
 Swagger: `Set a product status` · `@ApiResponse` 200 · path param/request DTOs documented
 
-### POST /products/:id/images
+### POST /admin/products/:id/images
 Add gallery image · Auth: Manager+ · Body: `{ imageId, imageUrl, sortOrder? }` · Success (201)
 
-### DELETE /products/:id/images/:imageId
+### DELETE /admin/products/:id/images/:imageId
 Remove gallery image (destroys Cloudinary asset) · Auth: Manager+ · Success (204)
 Notes: `:imageId` is the **ProductImage row id** (cuid), not the Cloudinary public id; the row's Cloudinary asset is destroyed best-effort after the delete.
 
-### PATCH /products/:id/images/reorder
+### PATCH /admin/products/:id/images/reorder
 Body: `{ order: [imageRecordId…] }` · Auth: Manager+ · Success (200): images
 
 ### POST /admin/uploads/signature
 Signed Cloudinary upload params for dashboard direct-upload · Auth: Manager+
-Body: `{ folder: "products" | "categories" }` · Success (200): `{ signature, timestamp, apiKey, cloudName, folder }`
-Notes: constraints (type/size) embedded in signed params.
+Body: `{ folder: "products" | "categories" }` · Success (200): `{ signature, timestamp, apiKey, cloudName, folder, allowedFormats }`
+Notes: signed params include `allowed_formats = "jpg,jpeg,png,webp"` and SHA-256 signature. Max file size (5 MB) is enforced by the dashboard/upload preset, not by the signature endpoint.
 
 ---
 

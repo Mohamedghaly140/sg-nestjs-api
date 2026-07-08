@@ -8,9 +8,12 @@ import { CommonModule } from './common/common.module';
 import configuration from './config/configuration';
 import { validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { HealthModule } from './modules/health/health.module';
+import { ProductsModule } from './modules/products/products.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -76,6 +79,9 @@ import { PrismaModule } from './prisma/prisma.module';
     CommonModule,
     AuthModule,
     UsersModule,
+    UploadsModule,
+    CategoriesModule,
+    ProductsModule,
     HealthModule,
   ],
   providers: [

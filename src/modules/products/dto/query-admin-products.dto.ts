@@ -1,5 +1,5 @@
-import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -9,13 +9,13 @@ import {
 } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 import { parseBooleanQuery } from '../../../common/utils/parse-boolean-query';
-import { Role } from '../../../generated/prisma/client';
+import { ProductStatus } from '../../../generated/prisma/client';
 
-export class QueryAdminUsersDto extends PaginationQueryDto {
+export class QueryAdminProductsDto extends PaginationQueryDto {
   @ApiPropertyOptional({
-    description: 'Case-insensitive search across name and email',
+    description: 'Case-insensitive search across product name and slug',
     maxLength: 100,
-    example: 'mariam',
+    example: 'dress',
   })
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
@@ -26,21 +26,29 @@ export class QueryAdminUsersDto extends PaginationQueryDto {
   search?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by authorization role',
-    enum: Role,
-    enumName: 'Role',
-    example: Role.MANAGER,
+    description: 'Filter by product status',
+    enum: ProductStatus,
+    enumName: 'ProductStatus',
+    example: ProductStatus.ACTIVE,
   })
   @IsOptional()
-  @IsEnum(Role)
-  role?: Role;
+  @IsEnum(ProductStatus)
+  status?: ProductStatus;
 
   @ApiPropertyOptional({
-    description: 'Filter by activation status',
+    description: 'Filter by category ID',
+    example: 'ckvcat123',
+  })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by featured flag',
     example: true,
   })
   @IsOptional()
   @Transform(parseBooleanQuery)
   @IsBoolean()
-  active?: boolean;
+  featured?: boolean;
 }
