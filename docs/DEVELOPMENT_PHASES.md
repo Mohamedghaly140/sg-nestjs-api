@@ -1,12 +1,12 @@
 # SG Couture — Development Phases
 
-> **Status:** Living document · **Last updated:** 2026-07-08
+> **Status:** Living document · **Last updated:** 2026-07-09
 >
 > 🤖 **Claude Code:** read this file **first** on every task. Work only within the active phase unless told otherwise. Update statuses and checklists immediately after completing work.
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–3 are complete.** Active phase: **Phase 4** (Cart).
+**Current state:** **Phases 0–4 are complete.** Active phase: **Phase 5** (Coupons & Shipping Zones).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -106,19 +106,19 @@
 
 ---
 
-## Phase 4 — Cart ⬜
+## Phase 4 — Cart ✅
 
 **Purpose:** the server-owned cart both storefronts share; anonymous support + merge ([ADR-0004](./ADR-0004-anonymous-cart-and-merge.md)).
 **Dependencies:** Phase 2. **DB:** `carts`, `cartItems`.
 
 **Features / tasks**
-- [ ] Cart identity middleware (JWT → user cart; `cart_session` cookie / `X-Cart-Session` header → anonymous)
-- [ ] Anonymous cart creation: UUID token, cookie for web + body echo for mobile, sliding 7-day `expiresAt`
-- [ ] Get cart (virtual empty when none), add/update/remove item, clear
-- [ ] Line validation: ACTIVE product, color/size membership, advisory stock cap with `available` in errors
-- [ ] Server-side totals recompute on every mutation
-- [ ] Auto-merge on first authenticated request with anonymous token (idempotent; cookie cleared)
-- [ ] Cron: purge expired carts
+- [x] Cart identity middleware (JWT → user cart; `cart_session` cookie / `X-Cart-Session` header → anonymous)
+- [x] Anonymous cart creation: UUID token, cookie for web + body echo for mobile, sliding 7-day `expiresAt`
+- [x] Get cart (virtual empty when none), add/update/remove item, clear
+- [x] Line validation: ACTIVE product, color/size membership, advisory stock cap with `available` in errors
+- [x] Server-side totals recompute on every mutation
+- [x] Auto-merge on first authenticated request with anonymous token (idempotent; cookie cleared)
+- [x] Cron: purge expired carts
 
 **Acceptance criteria:** concurrency-safe totals (mutations transactional); merge scenarios covered by e2e (no user cart / both carts / replay); mobile header flow works without cookies.
 
@@ -220,7 +220,7 @@
 - [x] Phase 1.5 — Admin Identity Rework (customers/users split)
 - [x] Phase 2 — Catalog
 - [x] Phase 3 — Reviews & Wishlist
-- [ ] Phase 4 — Cart
+- [x] Phase 4 — Cart
 - [ ] Phase 5 — Coupons & Shipping
 - [ ] Phase 6 — Checkout & Orders
 - [ ] Phase 7 — Payments (Geidea)

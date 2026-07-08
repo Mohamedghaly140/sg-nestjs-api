@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'node:crypto';
 import { LoggerModule } from 'nestjs-pino';
@@ -8,6 +9,7 @@ import { CommonModule } from './common/common.module';
 import configuration from './config/configuration';
 import { validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { CartModule } from './modules/cart/cart.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
@@ -77,6 +79,7 @@ import { PrismaModule } from './prisma/prisma.module';
         limit: 100,
       },
     ]),
+    ScheduleModule.forRoot(),
     PrismaModule,
     CommonModule,
     AuthModule,
@@ -86,6 +89,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ProductsModule,
     ReviewsModule,
     WishlistModule,
+    CartModule,
     HealthModule,
   ],
   providers: [

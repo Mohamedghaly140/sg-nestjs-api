@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { configureApp, setupSwagger } from './common/utils/configure-app';
@@ -12,6 +13,7 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   const configService = app.get(ConfigService);
+  app.use(cookieParser());
   configureApp(app, configService.get<string[]>('cors.origins') ?? []);
   setupSwagger(app);
 

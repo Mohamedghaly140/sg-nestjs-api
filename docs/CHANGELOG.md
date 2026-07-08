@@ -2,6 +2,20 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-09 — Phase 4 Cart concurrency fixes · Follow-up hardening
+
+- Fixed `CartService.mergeIfNeeded` to lock the anonymous cart from an id-only lookup, re-read it after the lock, and treat already-merged/deleted anonymous cart replays as a clean no-op instead of letting stale in-memory data drive a second merge/delete.
+- Fixed `CartService.mergeIfNeeded` to lock an existing user cart before loading its items for merge decisions, preventing stale pre-lock item snapshots from causing lost quantity updates or duplicate same-variant lines.
+- Fixed `CartService.getOrCreateCart` for registered users by catching Prisma `P2002` on concurrent first cart creation and re-attaching to the now-existing user cart instead of surfacing a spurious conflict.
+- Added a cart e2e concurrency regression that sends two authenticated merge replays for the same anonymous cart token and asserts both requests succeed, the anonymous cart is removed, and the merged user cart has no duplicate lines. No schema change, migration, API spec change, or `DATABASE.md` update was needed.
+
+## 2026-07-09 — Phase 4 Cart · Anonymous and user cart implementation
+
+- Added the Phase 4 Cart module: optional-auth cart endpoints, anonymous `cart_session`/`X-Cart-Session` identity extraction, UUID token minting, sliding anonymous expiry, add/update/remove/clear operations, line variant validation, advisory stock-cap errors with `errors: [{ productId, requested, available }]`, live-price total recomputation, merge-on-login, and a daily 04:00 expired-cart cleanup cron.
+- Added `cookie-parser`, `@nestjs/schedule`, and `@types/cookie-parser` to the package manifest/lock; wired cookie parsing in runtime and e2e bootstrap, registered `ScheduleModule.forRoot()`, and registered `CartModule`.
+- Tests added: focused CartService unit coverage for stock caps, invalid variants, total recomputation, all merge scenarios, idempotent replay, and sliding TTL; cart e2e coverage for anonymous header flow, anonymous cookie flow, authenticated cart creation, and fresh-user merge with cookie clearing.
+- Docs touched: `DEVELOPMENT_PHASES.md` marked Phase 4 complete and moved active status to Phase 5; `ARCHITECTURE.md` clarified that middleware-set `req.cartIdentity` only carries `sessionToken` and `@CartIdentity()` composes the full service identity. `API_SPECIFICATION.md` already matched the implementation; no Prisma schema change or `DATABASE.md` update was needed.
+
 ## 2026-07-08 — Phase 3 · Reviews and wishlist implementation
 
 - Added Phase 3 reviews and wishlist modules: public paginated product-review listing, authenticated review create/update/delete with owner checks and ADMIN moderation delete, one-review-per-user-per-product conflict handling with the documented `REVIEW_EXISTS` code, transactional product rating aggregate recompute, and authenticated wishlist list/add/remove with idempotent `upsert`/`deleteMany` behavior.

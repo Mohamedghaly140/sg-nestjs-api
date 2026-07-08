@@ -174,7 +174,9 @@ Every feature module follows the same internal shape: `*.module.ts`, one or more
 Two identities can be attached to a request:
 
 1. **`req.user`** — set by `ClerkAuthGuard`/`OptionalAuthGuard` from a verified Clerk JWT + DB lookup. Shape: `{ id, email, role, active }`.
-2. **`req.cartIdentity`** — resolved by `CartIdentityMiddleware` for cart/checkout routes: `{ userId } | { sessionToken }`. Web sends the anonymous token via the `cart_session` httpOnly cookie; mobile sends `X-Cart-Session` header. See [FEATURES.md §Cart](./FEATURES.md#4-cart).
+2. **`req.cartIdentity`** — set by `CartIdentityMiddleware` for cart/checkout routes and carries only the anonymous token shape `{ sessionToken }`. The middleware reads `X-Cart-Session` first, then the `cart_session` httpOnly cookie; it does not verify JWTs or set `userId`.
+
+Cart controllers compose the service identity through `@CartIdentity()`: `{ userId: req.user?.id, sessionToken: req.cartIdentity?.sessionToken }`. This keeps JWT-derived user identity owned by `ClerkAuthGuard`/`OptionalAuthGuard` and anonymous-token extraction owned by middleware. See [FEATURES.md §Cart](./FEATURES.md#4-cart).
 
 ## 7. Webhooks
 

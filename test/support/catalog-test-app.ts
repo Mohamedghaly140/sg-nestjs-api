@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import cookieParser from 'cookie-parser';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/common/utils/configure-app';
@@ -32,6 +33,7 @@ export async function createCatalogTestApp(): Promise<CatalogTestApp> {
     .compile();
 
   const app = module.createNestApplication<INestApplication<App>>();
+  app.use(cookieParser());
   configureApp(app, ['http://localhost:3000']);
   await app.init();
 
