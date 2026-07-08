@@ -110,7 +110,7 @@ No coupon field on Cart: **coupons apply at checkout only**, not stored on carts
 
 Percentage discount codes. `name` unique, stored **UPPERCASE**. `discount` 1–70 (%). `maxUsage` 0 = unlimited; `usedCount` incremented atomically at order creation, decremented when an order is cancelled before payment. `expire` = expiry datetime; `isActive` = kill switch. Discount applies to the **items subtotal (after product discounts)**, never to shipping fees.
 
-`perUserLimit` defaults to 1; 0 means unlimited uses per registered user or anonymous email. Global and per-user availability checks and increments happen in the same order-creation transaction to prevent concurrent over-consumption. `orders[]` retains the optional coupon association; `usages[]` records successful consumption.
+`perUserLimit` defaults to 1; 0 means unlimited uses per registered user or anonymous email. Global and per-user availability checks and increments happen in the same order-creation transaction to prevent concurrent over-consumption: `CouponsService.consumeCoupon` locks the coupon row (`SELECT ... FOR UPDATE`) and re-validates active/expiry/exhaustion/per-user-limit under that lock immediately before the atomic `usedCount` increment, so it is the single enforcement point — callers must not treat an earlier preview/pre-flight check (e.g. `POST /coupons/validate`) as sufficient on its own. `orders[]` retains the optional coupon association; `usages[]` records successful consumption.
 
 ### 3.10 CouponUsage (`couponUsages`)
 

@@ -26,6 +26,7 @@ describe('error codes', () => {
       'SHIPPING_NOT_AVAILABLE',
       'COUPON_EXPIRED',
       'COUPON_INACTIVE',
+      'COUPON_IN_USE',
       'SUBCATEGORY_CATEGORY_MISMATCH',
       'INVALID_VARIANT',
       'RATE_LIMITED',

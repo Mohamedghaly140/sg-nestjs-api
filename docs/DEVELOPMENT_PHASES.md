@@ -6,7 +6,7 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–4 are complete.** Active phase: **Phase 5** (Coupons & Shipping Zones).
+**Current state:** **Phases 0–5 are complete.** Active phase: **Phase 6** (Checkout & Orders).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -124,18 +124,18 @@
 
 ---
 
-## Phase 5 — Coupons & Shipping Zones ⬜
+## Phase 5 — Coupons & Shipping Zones ✅
 
 **Purpose:** pricing modifiers checkout depends on.
 **Dependencies:** Phase 1 (roles). **DB:** `coupons`, `couponUsages`, `shippingZones`.
 
 **Features / tasks**
-- [ ] Coupons CRUD (MANAGER+; uppercase normalization; `expire` future-only on create; delete blocked once used → 409 `COUPON_IN_USE`)
-- [ ] Admin coupon list: `search` + derived lifecycle `status` filter (`active|expired|exhausted|deactivated`) + `PATCH /admin/coupons/:id/deactivate` (one-way)
-- [ ] `POST /coupons/validate` public preview (auth optional; per-user check uses userId or provided email)
-- [ ] Race-safe consumption + release primitives (used by Phase 6)
-- [ ] Shipping zones CRUD (MANAGER+) + public fee lookup endpoint
-- [ ] Most-specific-match fee resolution
+- [x] Coupons CRUD (MANAGER+; uppercase normalization; `expire` future-only on create; delete blocked once used → 409 `COUPON_IN_USE`)
+- [x] Admin coupon list: `search` + derived lifecycle `status` filter (`active|expired|exhausted|deactivated`) + `PATCH /admin/coupons/:id/deactivate` (one-way)
+- [x] `POST /coupons/validate` public preview (auth optional; per-user check uses userId or provided email)
+- [x] Race-safe consumption + release primitives (used by Phase 6)
+- [x] Shipping zones CRUD (MANAGER+) + public fee lookup endpoint
+- [x] Most-specific-match fee resolution
 
 **Acceptance criteria:** exhausted/expired/inactive/per-user-limit cases each return documented 409/422 codes; concurrent consumption of last global use → exactly one winner (test with parallel transactions); fee lookup city > governorate precedence verified.
 
@@ -221,7 +221,7 @@
 - [x] Phase 2 — Catalog
 - [x] Phase 3 — Reviews & Wishlist
 - [x] Phase 4 — Cart
-- [ ] Phase 5 — Coupons & Shipping
+- [x] Phase 5 — Coupons & Shipping
 - [ ] Phase 6 — Checkout & Orders
 - [ ] Phase 7 — Payments (Geidea)
 - [ ] Phase 8 — Emails (Resend)

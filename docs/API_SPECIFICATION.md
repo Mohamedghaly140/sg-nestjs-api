@@ -371,6 +371,7 @@ Body: `{ code, email? }` (email used for the per-user check on guest flows)
 Success (200): `{ "valid": true, "code": "SAVE20", "discountPercent": "20.00", "discountApplied": "221.00", "itemsSubtotal": "1105.00" }`
 Errors: 404 unknown code; 422 `COUPON_EXPIRED` / `COUPON_INACTIVE`; 409 `COUPON_EXHAUSTED` / `COUPON_USER_LIMIT`
 Notes: preview only — nothing is consumed; checkout revalidates.
+Notes: if no userId and no `email` are available, the per-user-limit check is skipped; an empty/no cart still returns `valid: true` with `itemsSubtotal` and `discountApplied` as `"0.00"` when the code is otherwise eligible.
 
 ### GET /admin/coupons
 Dashboard listing with lifecycle filter · Auth: Manager+
@@ -390,7 +391,7 @@ Swagger: `List coupons for administration` · `@ApiResponse` 200 · query/respon
 ### POST /admin/coupons · PATCH /admin/coupons/:id
 Create / update · Auth: Manager+
 Create body: `{ name, discount (1–70), maxUsage (0=∞), perUserLimit (0=∞, default 1), expire, isActive? }`
-Validation: `expire` must be in the **future on create**; on update a past date is allowed (it effectively expires the coupon)
+Validation: `name` must match `^[A-Z0-9_-]{3,30}$` after uppercase normalization; `expire` must be in the **future on create**; on update a past date is allowed (it effectively expires the coupon)
 Errors: 409 `DUPLICATE_RESOURCE` (code already exists)
 Notes: name normalized UPPERCASE; `usedCount` read-only.
 
@@ -417,7 +418,7 @@ Errors: 422 `SHIPPING_NOT_AVAILABLE`
 Notes: most-specific active match; checkout recomputes internally (never trusts this call's client-side result).
 
 ### GET /admin/shipping-zones · POST /admin/shipping-zones · PATCH /admin/shipping-zones/:id · DELETE /admin/shipping-zones/:id
-CRUD · Auth: Manager+ · Create body: `{ country, governorate, city?, fee, isActive? }`
+CRUD · Auth: Manager+ · Query on list: `page, limit, search?` (country/governorate/city) · Create body: `{ country, governorate, city?, fee, isActive? }`
 Errors: 409 `DUPLICATE_RESOURCE` on (country, governorate, city)
 
 ---

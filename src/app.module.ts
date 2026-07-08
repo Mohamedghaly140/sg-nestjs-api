@@ -12,10 +12,12 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
+import { CouponsModule } from './modules/coupons/coupons.module';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { HealthModule } from './modules/health/health.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { ShippingModule } from './modules/shipping/shipping.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { UsersModule } from './modules/users/users.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
@@ -90,6 +92,8 @@ import { PrismaModule } from './prisma/prisma.module';
     ReviewsModule,
     WishlistModule,
     CartModule,
+    CouponsModule,
+    ShippingModule,
     HealthModule,
   ],
   providers: [
