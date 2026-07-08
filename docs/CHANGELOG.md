@@ -2,6 +2,16 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-08 — Phase 3 · Reviews and wishlist implementation
+
+- Added Phase 3 reviews and wishlist modules: public paginated product-review listing, authenticated review create/update/delete with owner checks and ADMIN moderation delete, one-review-per-user-per-product conflict handling with the documented `REVIEW_EXISTS` code, transactional product rating aggregate recompute, and authenticated wishlist list/add/remove with idempotent `upsert`/`deleteMany` behavior.
+- Added the shared rating-step validator for 1.0–5.0 ratings in 0.5 increments. Exported the existing `PRODUCT_CARD_SELECT` unchanged for wishlist mapping; `WishlistService` locally adds `status` only to compute `available` and strips it from the product-card response.
+- Tests added: unit coverage for rating aggregate math, round-half-up behavior, null-at-zero reviews, review authorization branches, duplicate-review conflict handling, and wishlist idempotency/mapping; e2e coverage for reviews and wishlist endpoint flows using the existing Clerk-auth fake and real-Prisma fixture harness.
+- Docs touched: `DEVELOPMENT_PHASES.md` marked Phase 3 complete and moved the active phase to Phase 4; this changelog. Verified `API_SPECIFICATION.md` and `DATABASE.md` still match the implementation; no schema change or migration was created.
+- Implementation plan was reviewed by the `fable-advisor` subagent before coding started (two fixes applied: keep the shared `PRODUCT_CARD_SELECT` untouched rather than adding `status` to it, and catch Prisma `P2002` on the review insert in addition to the pre-check, to close a race on duplicate-review detection). Implementation was delegated to Codex (`/codex:rescue`) against the approved plan; Codex's sandbox has no network/DB access, so it could run `pnpm lint`/`pnpm build`/`pnpm test` (all green) but not `pnpm test:e2e`.
+- Verified: `pnpm lint`, `pnpm build`, `pnpm test` (30 suites / 127 tests), and `pnpm test:e2e` (12 suites / 52 tests) all pass against the real dev DB; Swagger UI renders the 5 new operations at `/api/docs`.
+- Phase 3 correction: rating aggregate recompute now serializes per product with `SELECT ... FOR UPDATE` before aggregate reads, and review DTO validation rejects explicit `null` patch fields with the standard 422 `VALIDATION_ERROR` envelope while keeping omitted create titles optional.
+
 ## 2026-07-08 — Phase 2 · Admin catalog route namespace fix
 
 - Moved 15 admin-only catalog mutation routes from unprefixed paths to `/admin/...` to match the established admin-controller URL convention: 9 product write/action/gallery routes, 3 category routes, and 3 sub-category routes.

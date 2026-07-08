@@ -13,8 +13,10 @@ import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { HealthModule } from './modules/health/health.module';
 import { ProductsModule } from './modules/products/products.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { UsersModule } from './modules/users/users.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -82,6 +84,8 @@ import { PrismaModule } from './prisma/prisma.module';
     UploadsModule,
     CategoriesModule,
     ProductsModule,
+    ReviewsModule,
+    WishlistModule,
     HealthModule,
   ],
   providers: [

@@ -8,7 +8,7 @@ import {
   buildPublicProductsWhere,
 } from './utils/build-public-products-where';
 
-const PRODUCT_CARD_SELECT = {
+export const PRODUCT_CARD_SELECT = {
   id: true,
   name: true,
   slug: true,

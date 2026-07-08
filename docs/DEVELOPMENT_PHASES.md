@@ -6,7 +6,7 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–2 are complete.** Active phase: **Phase 3** (Reviews & Wishlist).
+**Current state:** **Phases 0–3 are complete.** Active phase: **Phase 4** (Cart).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -91,16 +91,16 @@
 
 ---
 
-## Phase 3 — Reviews & Wishlist ⬜
+## Phase 3 — Reviews & Wishlist ✅
 
 **Purpose:** social proof + saved items.
 **Dependencies:** Phase 2. **DB:** `reviews`, `UserWishlist`.
 
 **Features / tasks**
-- [ ] Reviews CRUD (own) + ADMIN moderation delete; one-per-user-per-product 409
-- [ ] Transactional rating aggregate recompute (avg rounded to 1 dp, null at zero)
-- [ ] Public review listing per product (paginated)
-- [ ] Wishlist: idempotent add/remove, listing with `available` flag
+- [x] Reviews CRUD (own) + ADMIN moderation delete; one-per-user-per-product 409
+- [x] Transactional rating aggregate recompute (avg rounded to 1 dp, null at zero)
+- [x] Public review listing per product (paginated)
+- [x] Wishlist: idempotent add/remove, listing with `available` flag
 
 **Acceptance criteria:** aggregates correct after create/update/delete sequences (unit-tested math); duplicate review → 409 `REVIEW_EXISTS`; wishlist ops idempotent.
 
@@ -219,7 +219,7 @@
 - [x] Phase 1 — Identity & Authorization (Clerk)
 - [x] Phase 1.5 — Admin Identity Rework (customers/users split)
 - [x] Phase 2 — Catalog
-- [ ] Phase 3 — Reviews & Wishlist
+- [x] Phase 3 — Reviews & Wishlist
 - [ ] Phase 4 — Cart
 - [ ] Phase 5 — Coupons & Shipping
 - [ ] Phase 6 — Checkout & Orders
