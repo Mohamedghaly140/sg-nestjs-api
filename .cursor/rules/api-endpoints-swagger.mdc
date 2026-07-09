@@ -1,0 +1,25 @@
+---
+description: API endpoint template, Swagger decorators, server-side pricing, and API_SPECIFICATION updates
+globs: "**/*.controller.ts,**/dto/**/*.ts"
+alwaysApply: false
+---
+
+# API endpoints & Swagger
+
+Follow the endpoint template in `docs/API_SPECIFICATION.md`. Skills: `new-endpoint`, `nestjs-swagger`.
+
+## Same-task requirements
+
+When adding or changing a route:
+
+1. Document it in `docs/API_SPECIFICATION.md`.
+2. Add/update Swagger: `@ApiTags`, `@ApiOperation`, `@ApiResponse` on the controller; `@ApiProperty` on DTOs.
+3. Controllers return bare data (global envelope handles wrapping).
+
+## Pricing
+
+Server is source of truth for all money. Never trust client-submitted cart totals, discounts, shipping fees, or order totals — compute from the database.
+
+## New endpoints
+
+Prefer the `new-endpoint` skill so DTO, controller, service, and API-spec entry stay aligned.

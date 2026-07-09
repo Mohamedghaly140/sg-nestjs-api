@@ -1,0 +1,26 @@
+---
+description: NestJS modular-monolith layering — controllers, services, module boundaries, PrismaService, response envelope
+globs: src/modules/**/*.ts,src/common/**/*.ts,src/app.module.ts
+alwaysApply: false
+---
+
+# NestJS architecture
+
+Follow `docs/ARCHITECTURE.md` and `docs/CODING_STANDARDS.md`. Prefer NestJS-idiomatic patterns over generic Express/Node style.
+
+## Layering
+
+- **Controllers** — routing and I/O only. No Prisma. No business logic.
+- **Services** — business logic, `prisma.$transaction`, domain events.
+- **Cross-module side effects** — `@nestjs/event-emitter`, not direct service coupling for “order paid → email/notification” style work.
+- **Module boundaries** — feature modules under `src/modules/*` talk only through exported services. Never reach into another module’s Prisma queries or controllers.
+
+## Data access
+
+- No repository layer over Prisma. Use the shared `PrismaService`.
+- Complex queries live as private methods on the owning service.
+- Abstractions gateways only when a second real implementation exists (e.g. payments).
+
+## Responses
+
+- Global response envelope wraps every success/error. Controllers return bare data; do not hand-roll `{ status, message, data }` shapes.

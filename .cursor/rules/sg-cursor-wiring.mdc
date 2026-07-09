@@ -1,0 +1,34 @@
+---
+description: Cursor wiring for SG Couture — phase check, agents/skills to invoke, pnpm. Complements AGENTS.md/CLAUDE.md; do not duplicate them.
+alwaysApply: true
+---
+
+# SG Couture — Cursor wiring
+
+`AGENTS.md` and `CLAUDE.md` are the source of truth. This rule only wires Cursor-specific habits.
+
+## Before coding
+
+1. Read `docs/DEVELOPMENT_PHASES.md` and identify the active phase + acceptance criteria.
+2. Use the docs map in `AGENTS.md` — read only the docs relevant to the task.
+3. Do not invent business logic absent from `docs/FEATURES.md`. Ask, then document, then implement.
+
+## Agents (when available)
+
+| Agent | When |
+|---|---|
+| `docs-explorer` | Library/framework docs before implementing against something unfamiliar |
+| `fable-advisor` | Architecture decision, schema migration, or refactor touching 3+ files — treat Flag as blocking |
+| `phase-guard` | Before starting implementation and before declaring a task done |
+| `api-documenter` | After adding/changing controller routes — check API-spec drift |
+
+## Skills (use by name)
+
+- Endpoints: `new-endpoint`, `nestjs-swagger`
+- NestJS / Prisma: `nestjs-patterns`, `prisma-patterns`
+- Quality: `test-patterns`, `tdd-workflow`, `clean-typescript`, `security-review`
+- Done: `task-close` (mandatory checklist before saying a task is finished)
+
+## Tooling
+
+- Package manager: **pnpm** only (never npm/yarn).

@@ -1,0 +1,28 @@
+---
+description: Prisma schema conventions, migration+docs hygiene, and atomic stock reservation (ADR-0003)
+globs: prisma/**/*,**/schema.prisma
+alwaysApply: false
+---
+
+# Prisma / database
+
+Canonical rationale: `docs/DATABASE.md`. Patterns: skill `prisma-patterns`.
+
+## Same-task hygiene
+
+Any `prisma/schema.prisma` change must include in the same task:
+
+1. A Prisma migration
+2. Update `docs/DATABASE.md`
+3. A `docs/CHANGELOG.md` entry
+
+## Conventions
+
+- IDs: `cuid()` except `User.id` (Clerk user ID).
+- Money: `Decimal(10,2)` EGP.
+- No soft-delete — products use `status = ARCHIVED`; users use `active = false`.
+- Choose `Cascade` / `Restrict` / `SetNull` deliberately per `docs/DATABASE.md` §1.
+
+## Stock
+
+All stock mutations use the conditional-decrement transaction in `docs/ADR-0003-stock-reservation-strategy.md`. Never read-then-write stock.

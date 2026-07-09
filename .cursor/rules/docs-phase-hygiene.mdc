@@ -1,0 +1,31 @@
+---
+description: Phase checklist, CHANGELOG shape, ADR conflicts, and task-close before declaring done
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Docs & phase hygiene
+
+## Phase status
+
+- Tick `docs/DEVELOPMENT_PHASES.md` checklist items (`- [ ]` → `- [x]`) in the same task that completes them.
+- When a phase finishes (or partially), update the phase heading status and the Master Implementation Progress list together.
+- Do not implement a later phase’s feature unless the user explicitly asks.
+
+## Changelog
+
+- Every completed implementation task needs a **newest-first** entry at the top of `docs/CHANGELOG.md` (under the intro), matching existing shape:
+
+```markdown
+## YYYY-MM-DD — <scope> · <short title>
+
+- <what changed>
+```
+
+## ADRs
+
+- Do not silently contradict `docs/ADR-000*.md`. Surface conflicts and ask for direction.
+
+## Before “done”
+
+- Run the `task-close` skill / checklist (phase, API spec, DATABASE.md, CHANGELOG, ADR if needed, lint/tests).

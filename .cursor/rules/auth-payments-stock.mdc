@@ -1,0 +1,31 @@
+---
+description: Clerk auth, Geidea payments, webhooks, cart identity, and atomic stock at checkout
+globs: src/modules/auth/**/*,src/modules/payments/**/*,src/modules/orders/**/*,src/modules/cart/**/*
+alwaysApply: false
+---
+
+# Auth, payments, cart & stock
+
+## Auth (ADR-0001)
+
+- Authentication is Clerk. Do **not** create register, login, or password endpoints.
+- `User.id` is the Clerk user ID. DB `role` is source of truth; mirror to Clerk `publicMetadata`.
+
+## Payments (ADR-0002)
+
+- Geidea (Egypt). Payment state changes **only** via verified Geidea webhook or explicit admin action for CASH orders.
+- Never mark an order paid from a client redirect/return URL.
+
+## Webhooks
+
+- `/webhooks/clerk` and `/webhooks/geidea` are `@Public()`, signature-verified before parsing, and idempotent.
+
+## Two identities
+
+- `req.user` — Clerk-verified, DB-loaded.
+- `req.cartIdentity` — `{ userId } | { sessionToken }`, resolved by cart middleware.
+- Do not conflate guest and registered identity.
+
+## Stock (ADR-0003)
+
+- Checkout and any stock mutation: conditional-decrement transaction only. Never read-then-write.
