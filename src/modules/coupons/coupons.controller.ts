@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
@@ -33,6 +34,7 @@ export class CouponsController {
 
   @Post('validate')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Validate a coupon against the current cart' })
   @ApiResponse({ status: 200, type: ValidateCouponResponseDto })
   @ApiResponse({ status: 404, description: 'Coupon code was not found' })

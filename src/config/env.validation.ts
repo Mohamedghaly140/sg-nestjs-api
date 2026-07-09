@@ -12,6 +12,7 @@ import {
   Min,
   validateSync,
 } from 'class-validator';
+import { IsCorsOriginList } from '../common/validators/is-cors-origin-list.validator';
 
 enum Environment {
   Development = 'development',
@@ -51,7 +52,7 @@ export class EnvironmentVariables {
   DIRECT_URL?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsCorsOriginList()
   CORS_ORIGINS: string;
 
   @IsString()

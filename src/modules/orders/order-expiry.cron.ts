@@ -37,22 +37,33 @@ export class OrderExpiryCron {
 
     for (const order of orders) {
       try {
-        await this.prisma.$transaction(async (tx) => {
+        const cancelled = await this.prisma.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM "orders" WHERE id = ${order.id} FOR UPDATE`;
           const lockedOrder = await this.ordersService.findOrderForRestore(
             tx,
             order.id,
           );
+          // Re-check status after acquiring the lock: a concurrent cron run
+          // (overlapping deploy, accidental multi-replica) may have already
+          // restored and cancelled this order while we were blocked on the
+          // lock, so the row we just read may no longer be PENDING. Restoring
+          // again would double-increment stock and double-release the coupon.
+          if (lockedOrder.status !== OrderStatus.PENDING) {
+            return false;
+          }
           await this.ordersService.restoreOrderInventory(tx, lockedOrder);
           await tx.order.update({
             where: { id: order.id },
             data: { status: OrderStatus.CANCELLED },
           });
+          return true;
         });
-        this.eventEmitter.emit(
-          'order.status_changed',
-          new OrderStatusChangedEvent(order.id, OrderStatus.CANCELLED),
-        );
+        if (cancelled) {
+          this.eventEmitter.emit(
+            'order.status_changed',
+            new OrderStatusChangedEvent(order.id, OrderStatus.CANCELLED),
+          );
+        }
       } catch (error: unknown) {
         this.logger.error(
           { err: error, orderId: order.id },

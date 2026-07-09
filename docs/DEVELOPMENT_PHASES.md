@@ -165,7 +165,7 @@
 
 **Purpose:** card payments via Geidea Checkout ([ADR-0002](./ADR-0002-geidea-payment-gateway.md)).
 **Dependencies:** Phase 6, Geidea merchant sandbox credentials. **DB:** `geideaSessionId`, `geideaOrderId` (Migration 001).
-**Status note:** explicitly skipped per user instruction while implementing Phase 8; no Geidea/payment-session code has been built yet.
+**Status note:** explicitly skipped per user instruction while implementing Phase 8; no Geidea/payment-session code has been built yet. As of Phase 11, `POST /orders` and `POST /orders/guest` reject `paymentMethod: "CARD"` with 422 `PAYMENT_METHOD_UNAVAILABLE` before the checkout transaction starts — this is a checkout-time policy gate (not a schema/enum change) that must be removed the moment this phase ships.
 
 **Features / tasks**
 - [ ] `GeideaService`: signed create-session, session reuse (idempotent), config from env
@@ -212,7 +212,7 @@
 
 **Status note:** Phase 9 (Notifications) was explicitly skipped per user instruction while implementing Phase 10; Phase 10 is read-only analytics over existing order/product/user/coupon/address data and has no dependency on notifications.
 
-**Phase 11:** stricter per-route throttles (checkout, coupon validate, webhooks); security review pass ([CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security)); load test on checkout concurrency; coverage targets met (services ≥ 80%, money paths ≥ 95%); deployment config + runbook; final docs audit (incl. OpenAPI spec complete and accurate for all endpoints). Acceptance: launch checklist signed off.
+**Phase 11:** stricter per-route throttles (checkout, coupon validate) and an explicit signature-gated throttle-exemption policy for webhooks (not stricter webhook throttles — see [CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security)); security review pass; load test on checkout concurrency; coverage targets met (services ≥ 80%, money paths ≥ 95%); deployment config + runbook; final docs audit (incl. OpenAPI spec complete and accurate for all endpoints). Acceptance: launch checklist signed off.
 
 ---
 

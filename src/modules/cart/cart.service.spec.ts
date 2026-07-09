@@ -429,6 +429,299 @@ describe('CartService', () => {
     expect(replay.cart.items).toHaveLength(1);
   });
 
+  it('404s adding a product that is missing or not active', async () => {
+    const archived = prisma.seedProduct({ status: ProductStatus.ARCHIVED });
+
+    await expect(
+      service.addItem({ userId: 'user_1' }, { productId: 'nope', quantity: 1 }),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+    await expect(
+      service.addItem(
+        { userId: 'user_1' },
+        { productId: archived.id, quantity: 1 },
+      ),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+  });
+
+  it('increments the existing line when adding the same variant again', async () => {
+    const product = prisma.seedProduct({ quantity: 5 });
+    const cart = prisma.seedCart({ userId: 'user_1' });
+    const item = prisma.seedCartItem({
+      cartId: cart.id,
+      productId: product.id,
+      quantity: 1,
+      color: 'Black',
+      size: 'M',
+    });
+
+    const result = await service.addItem(
+      { userId: 'user_1' },
+      { productId: product.id, quantity: 2, color: 'Black', size: 'M' },
+    );
+
+    expect(prisma.cartItems.get(item.id)?.quantity).toBe(3);
+    expect(result.cart.items).toHaveLength(1);
+  });
+
+  it('updates an item quantity and recomputes totals', async () => {
+    const product = prisma.seedProduct({
+      quantity: 5,
+      price: '100.00',
+      priceAfterDiscount: '80.00',
+    });
+    const cart = prisma.seedCart({ userId: 'user_1' });
+    const item = prisma.seedCartItem({
+      cartId: cart.id,
+      productId: product.id,
+      quantity: 1,
+    });
+
+    const result = await service.updateItem({ userId: 'user_1' }, item.id, {
+      quantity: 3,
+    });
+
+    expect(result.cart.items[0]).toEqual(
+      expect.objectContaining({ quantity: 3, lineTotal: '240' }),
+    );
+    expect(result.cart.totalCartPrice).toBe('300');
+  });
+
+  it('404s item updates when the identity has no cart or the item is not in it', async () => {
+    await expect(
+      service.updateItem({ userId: 'user_1' }, 'item_x', { quantity: 1 }),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+
+    prisma.seedCart({ userId: 'user_1' });
+    await expect(
+      service.updateItem({ userId: 'user_1' }, 'item_x', { quantity: 1 }),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+  });
+
+  it('404s item updates when the product row has vanished', async () => {
+    const cart = prisma.seedCart({ userId: 'user_1' });
+    const item = prisma.seedCartItem({
+      cartId: cart.id,
+      productId: 'prod_gone',
+      quantity: 1,
+    });
+
+    await expect(
+      service.updateItem({ userId: 'user_1' }, item.id, { quantity: 2 }),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+  });
+
+  it('removes an item and recomputes totals, 404ing unknown items', async () => {
+    const product = prisma.seedProduct();
+    const cart = prisma.seedCart({ userId: 'user_1' });
+    const item = prisma.seedCartItem({
+      cartId: cart.id,
+      productId: product.id,
+      quantity: 2,
+    });
+
+    const result = await service.removeItem({ userId: 'user_1' }, item.id);
+
+    expect(result.cart.items).toHaveLength(0);
+    expect(result.cart.totalCartPrice).toBe('0');
+
+    await expect(
+      service.removeItem({ userId: 'user_1' }, 'item_x'),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+  });
+
+  it('404s item removal when the identity has no cart', async () => {
+    await expect(
+      service.removeItem({ sessionToken: 'no_such_cart' }, 'item_x'),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+  });
+
+  it('clearCart empties a user cart but keeps the row', async () => {
+    const product = prisma.seedProduct();
+    const cart = prisma.seedCart({ userId: 'user_1' });
+    prisma.seedCartItem({ cartId: cart.id, productId: product.id });
+
+    await service.clearCart({ userId: 'user_1' });
+
+    expect(prisma.carts.has(cart.id)).toBe(true);
+    expect(
+      [...prisma.cartItems.values()].filter((item) => item.cartId === cart.id),
+    ).toHaveLength(0);
+  });
+
+  it('clearCart deletes an anonymous cart entirely and clears the cookie', async () => {
+    const product = prisma.seedProduct();
+    const cart = prisma.seedCart({ sessionToken: 'anon_token' });
+    prisma.seedCartItem({ cartId: cart.id, productId: product.id });
+
+    await expect(
+      service.clearCart({ sessionToken: 'anon_token' }),
+    ).resolves.toEqual({ clearAnonCookie: true });
+    expect(prisma.carts.has(cart.id)).toBe(false);
+  });
+
+  it('clearCart is a no-op without a cart', async () => {
+    await expect(service.clearCart({ userId: 'user_1' })).resolves.toEqual({
+      clearAnonCookie: undefined,
+    });
+  });
+
+  it('loadCartForCheckout returns null without a cart and re-reads under the lock', async () => {
+    await expect(
+      service.loadCartForCheckout(prisma as never, { userId: 'user_1' }),
+    ).resolves.toBeNull();
+
+    const product = prisma.seedProduct();
+    const cart = prisma.seedCart({ userId: 'user_1' });
+    prisma.seedCartItem({ cartId: cart.id, productId: product.id });
+
+    await expect(
+      service.loadCartForCheckout(prisma as never, { userId: 'user_1' }),
+    ).resolves.toMatchObject({ id: cart.id });
+    expect(prisma.$queryRaw).toHaveBeenCalled();
+  });
+
+  it('clearCartInTx clears user carts in place and deletes anonymous carts', async () => {
+    const product = prisma.seedProduct();
+    const userCart = prisma.seedCart({ userId: 'user_1' });
+    prisma.seedCartItem({ cartId: userCart.id, productId: product.id });
+    const anonCart = prisma.seedCart({ sessionToken: 'anon_token' });
+
+    await service.clearCartInTx(prisma as never, {
+      id: userCart.id,
+      userId: 'user_1',
+    });
+    await service.clearCartInTx(prisma as never, {
+      id: anonCart.id,
+      userId: null,
+    });
+
+    expect(prisma.carts.has(userCart.id)).toBe(true);
+    expect(
+      [...prisma.cartItems.values()].filter(
+        (item) => item.cartId === userCart.id,
+      ),
+    ).toHaveLength(0);
+    expect(prisma.carts.has(anonCart.id)).toBe(false);
+  });
+
+  it('mints a session token when an anonymous shopper without one adds an item', async () => {
+    const product = prisma.seedProduct();
+
+    const result = await service.addItem(
+      {},
+      { productId: product.id, quantity: 1 },
+    );
+
+    expect(result.mintedSessionToken).toEqual(expect.any(String));
+    expect(
+      [...prisma.carts.values()].find(
+        (cart) => cart.sessionToken === result.mintedSessionToken,
+      ),
+    ).toBeDefined();
+  });
+
+  it('reuses a provided session token without minting a new one', async () => {
+    const product = prisma.seedProduct();
+
+    const result = await service.addItem(
+      { sessionToken: 'existing_token' },
+      { productId: product.id, quantity: 1 },
+    );
+
+    expect(result.mintedSessionToken).toBeUndefined();
+    expect(
+      [...prisma.carts.values()].find(
+        (cart) => cart.sessionToken === 'existing_token',
+      ),
+    ).toBeDefined();
+  });
+
+  it('returns the empty-cart shape for an identityless request', async () => {
+    await expect(service.getCart({})).resolves.toMatchObject({
+      cart: {
+        id: null,
+        items: [],
+        totalCartPrice: '0.00',
+        totalPriceAfterDiscount: '0.00',
+      },
+    });
+  });
+
+  it('finds a cart by session token alone', async () => {
+    const cart = prisma.seedCart({ sessionToken: 'anon_token' });
+
+    await expect(
+      service.getCart({ sessionToken: 'anon_token' }),
+    ).resolves.toMatchObject({ cart: { id: cart.id } });
+  });
+
+  it('recovers when a concurrent request created the user cart first (P2002)', async () => {
+    const product = prisma.seedProduct();
+    const existingCart = prisma.seedCart({ userId: 'user_1' });
+    prisma.cart.findUnique.mockImplementationOnce(() => Promise.resolve(null));
+    prisma.cart.create.mockImplementationOnce(() =>
+      Promise.reject(
+        new Prisma.PrismaClientKnownRequestError('duplicate cart', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      ),
+    );
+
+    const result = await service.addItem(
+      { userId: 'user_1' },
+      { productId: product.id, quantity: 1 },
+    );
+
+    expect(result.cart.id).toBe(existingCart.id);
+    expect(result.cart.items).toHaveLength(1);
+  });
+
+  it('merge skips anonymous lines whose product was removed', async () => {
+    const product = prisma.seedProduct();
+    const userCart = prisma.seedCart({ userId: 'user_1' });
+    prisma.seedCartItem({ cartId: userCart.id, productId: product.id });
+    const anonCart = prisma.seedCart({ sessionToken: 'anon_token' });
+    prisma.seedCartItem({ cartId: anonCart.id, productId: 'prod_gone' });
+
+    const result = await service.getCart({
+      userId: 'user_1',
+      sessionToken: 'anon_token',
+    });
+
+    expect(prisma.carts.has(anonCart.id)).toBe(false);
+    expect(result.cart.items).toHaveLength(1);
+    expect(result.cart.items[0].product.id).toBe(product.id);
+  });
+
+  it('merge deletes the user line when stock has dropped to zero', async () => {
+    const soldOut = prisma.seedProduct({ quantity: 0 });
+    const userCart = prisma.seedCart({ userId: 'user_1' });
+    prisma.seedCartItem({
+      cartId: userCart.id,
+      productId: soldOut.id,
+      quantity: 2,
+      color: 'Black',
+      size: 'M',
+    });
+    const anonCart = prisma.seedCart({ sessionToken: 'anon_token' });
+    prisma.seedCartItem({
+      cartId: anonCart.id,
+      productId: soldOut.id,
+      quantity: 1,
+      color: 'Black',
+      size: 'M',
+    });
+
+    const result = await service.getCart({
+      userId: 'user_1',
+      sessionToken: 'anon_token',
+    });
+
+    expect(result.cart.items).toHaveLength(0);
+    expect(result.cart.totalCartPrice).toBe('0');
+  });
+
   it('bumps anonymous cart TTL on mutation', async () => {
     const product = prisma.seedProduct();
     const oldExpiry = new Date('2026-07-09T11:00:00.000Z');

@@ -3,3 +3,7 @@ allowBuilds:
   '@scarf/scarf': false
   prisma: true
   unrs-resolver: true
+
+overrides:
+  multer@>=2.0.0-alpha.1 <2.2.0: '>=2.2.0'
+  '@hono/node-server@<1.19.13': '>=1.19.13'

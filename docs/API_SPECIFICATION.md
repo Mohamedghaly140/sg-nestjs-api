@@ -436,14 +436,14 @@ Success (201):
   "itemsSubtotal":"1105.00","discountApplied":"221.00","shippingFees":"65.00","totalOrderPrice":"949.00",
   "isPaid":false,"createdAt":"…" }
 ```
-Errors: 422 `CART_EMPTY` / `SHIPPING_NOT_AVAILABLE` / line-validation details; 409 `INSUFFICIENT_STOCK` / `COUPON_EXHAUSTED` / `COUPON_USER_LIMIT`
-Notes: single transaction per [FEATURES.md §6](./FEATURES.md#6-orders--checkout); stock decremented atomically; cart cleared; `order.created` emitted; CARD → client proceeds to payment-session.
+Errors: 422 `CART_EMPTY` / `SHIPPING_NOT_AVAILABLE` / `PAYMENT_METHOD_UNAVAILABLE` (CARD selected) / line-validation details; 409 `INSUFFICIENT_STOCK` / `COUPON_EXHAUSTED` / `COUPON_USER_LIMIT`
+Notes: single transaction per [FEATURES.md §6](./FEATURES.md#6-orders--checkout); stock decremented atomically; cart cleared; `order.created` emitted; CARD → client proceeds to payment-session. **Phase 7 (Geidea) is not built yet — `paymentMethod: "CARD"` is rejected with 422 `PAYMENT_METHOD_UNAVAILABLE` before the transaction starts; only `"CASH"` is orderable until Phase 7 ships.**
 
 ### POST /orders/guest
 Anonymous checkout · Auth: Optional (anonymous cart token required) · Throttle 5/min
 Body: `{ paymentMethod, couponCode?, notes?, contact: { name, phone, email }, shipping: { country, governorate, city, area, phone, addressLine1, details, postalCode?, latitude?, longitude? } }`
 Success (201): order summary (as above) + `{ "claimToken": "sent-by-email" }` — token itself is **not** returned in the API response
-Errors: as POST /orders + 422 when no anonymous cart
+Errors: as POST /orders + 422 when no anonymous cart (also 422 `PAYMENT_METHOD_UNAVAILABLE` for CARD, same as above)
 Notes: generates `guestToken` (30d) and emails the claim link to `contact.email`; coupon per-user limit keyed on email.
 
 ### GET /orders

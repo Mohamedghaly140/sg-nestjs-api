@@ -84,7 +84,7 @@ Pagination meta (always this shape):
 | 403 | Authenticated but not allowed | `FORBIDDEN`, `ACCOUNT_DISABLED` |
 | 404 | Resource not found / not visible to caller | `RESOURCE_NOT_FOUND`, `CLAIM_TOKEN_INVALID` |
 | 409 | State conflict | `DUPLICATE_RESOURCE`, `INSUFFICIENT_STOCK`, `COUPON_EXHAUSTED`, `COUPON_USER_LIMIT`, `COUPON_IN_USE`, `REVIEW_EXISTS`, `INVALID_STATUS_TRANSITION`, `SELF_MODIFICATION_FORBIDDEN`, `FORBIDDEN_TARGET`, `LAST_ADMIN_REQUIRED` |
-| 422 | Well-formed but semantically invalid | `VALIDATION_ERROR`, `CART_EMPTY`, `SHIPPING_NOT_AVAILABLE`, `COUPON_EXPIRED`, `COUPON_INACTIVE`, `SUBCATEGORY_CATEGORY_MISMATCH`, `INVALID_VARIANT` |
+| 422 | Well-formed but semantically invalid | `VALIDATION_ERROR`, `CART_EMPTY`, `SHIPPING_NOT_AVAILABLE`, `COUPON_EXPIRED`, `COUPON_INACTIVE`, `SUBCATEGORY_CATEGORY_MISMATCH`, `INVALID_VARIANT`, `PAYMENT_METHOD_UNAVAILABLE` (CARD selected at checkout while Phase 7/Geidea is unbuilt) |
 | 429 | Throttled | `RATE_LIMITED` |
 | 500 | Unhandled | `INTERNAL_ERROR` |
 
@@ -106,7 +106,7 @@ Prisma mapping (in `PrismaExceptionFilter`): `P2002`→409, `P2025`→404, `P200
 - **Webhooks:** signature verification before any processing (Svix / Geidea HMAC); raw-body middleware scoped to webhook routes only.
 - **CORS:** explicit origin allow-list from env; credentials enabled (cart cookie).
 - **CSRF:** the API is Bearer-token based; the only cookie (`cart_session`) is httpOnly + SameSite=Lax and grants only cart access — acceptable exposure; state-changing cart routes still require the token match. Re-evaluate if any auth cookie is ever introduced.
-- **Rate limiting:** global 100/min/IP; overrides: checkout 5/min, coupon validate 10/min, payment-session 5/min, claim 5/min.
+- **Rate limiting:** global 100/min/IP; overrides: checkout 5/min, coupon validate 10/min, claim 5/min, guest-order fetch 10/min. Webhooks (`/webhooks/clerk`, and `/webhooks/geidea` once Phase 7 lands) are `@SkipThrottle()`-exempt instead of stricter-throttled: signature verification (401 on failure) already gates them before any processing, and IP-based throttling would risk false-positive 429s on legitimate provider retry/backfill floods. `payment-session` is Phase 7 scope — its 5/min override is documented here as a forward-looking note, not yet implemented (no such endpoint exists until Geidea ships). `ThrottlerModule`'s `skipIf` (`src/app.module.ts`) also bypasses **all** throttling globally when `LOAD_TEST_MODE=true` — this exists solely so `pnpm test:load` (`test/load/checkout-load.ts`) can drive real concurrency past the checkout throttle from a single test-client IP. **Never set `LOAD_TEST_MODE=true` on a deployed instance** — see `docs/RUNBOOK.md`.
 - **Input:** global whitelist validation; Prisma parameterization = SQL-injection safe (no raw SQL except the documented sequence call); XSS is a client concern but we never render HTML from user input and cap string lengths.
 - **Sensitive data:** guest tokens are single-purpose, expiring, and never logged; PII limited to what commerce requires.
 - **Secrets:** env only, validated at boot, never committed; separate sandbox/production Geidea + Clerk instances.

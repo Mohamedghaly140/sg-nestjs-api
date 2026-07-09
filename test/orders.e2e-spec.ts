@@ -180,7 +180,7 @@ describe('/orders (e2e)', () => {
   }
 
   const guestBody = {
-    paymentMethod: PaymentMethod.CARD,
+    paymentMethod: PaymentMethod.CASH,
     contact: {
       name: 'Guest Customer',
       phone: '+201000000001',
@@ -205,7 +205,7 @@ describe('/orders (e2e)', () => {
       .set(authHeader(TEST_TOKENS.customer))
       .send({
         shippingAddressId: addressId,
-        paymentMethod: PaymentMethod.CARD,
+        paymentMethod: PaymentMethod.CASH,
       })
       .expect(201);
 
@@ -270,6 +270,31 @@ describe('/orders (e2e)', () => {
       .expect(200);
   }, 10000);
 
+  it('rejects CARD payment method at checkout since Geidea integration is not built yet', async () => {
+    await createUserCart(1);
+    await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .set(authHeader(TEST_TOKENS.customer))
+      .send({
+        shippingAddressId: addressId,
+        paymentMethod: PaymentMethod.CARD,
+      })
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
+      });
+
+    await createGuestCart('e2e-orders-card-guest');
+    await request(app.getHttpServer())
+      .post('/api/v1/orders/guest')
+      .set('X-Cart-Session', 'e2e-orders-card-guest')
+      .send({ ...guestBody, paymentMethod: PaymentMethod.CARD })
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
+      });
+  }, 10000);
+
   it('supports admin status transitions and CASH mark-paid', async () => {
     await createUserCart(1);
     const created = await request(app.getHttpServer())
@@ -327,7 +352,7 @@ describe('/orders (e2e)', () => {
       .set(authHeader(TEST_TOKENS.customer))
       .send({
         shippingAddressId: addressId,
-        paymentMethod: PaymentMethod.CARD,
+        paymentMethod: PaymentMethod.CASH,
       })
       .expect(201);
     await waitForMailCount(1);
@@ -347,7 +372,7 @@ describe('/orders (e2e)', () => {
       .set(authHeader(TEST_TOKENS.customer))
       .send({
         shippingAddressId: addressId,
-        paymentMethod: PaymentMethod.CARD,
+        paymentMethod: PaymentMethod.CASH,
       })
       .expect(201);
 

@@ -27,10 +27,11 @@ export class CheckoutDto {
   shippingAddressId!: string;
 
   @ApiProperty({
-    description: 'Payment method for the order',
+    description:
+      'Payment method for the order. CARD is temporarily rejected with 422 PAYMENT_METHOD_UNAVAILABLE until the Geidea integration ships (Phase 7).',
     enum: PaymentMethod,
     enumName: 'PaymentMethod',
-    example: PaymentMethod.CARD,
+    example: PaymentMethod.CASH,
   })
   @IsEnum(PaymentMethod)
   paymentMethod!: PaymentMethod;

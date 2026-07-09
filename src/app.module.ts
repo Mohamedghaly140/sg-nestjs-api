@@ -80,12 +80,20 @@ import { PrismaModule } from './prisma/prisma.module';
         };
       },
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 100,
-      },
-    ]),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60_000,
+          limit: 100,
+        },
+      ],
+      // Escape hatch for test/load/checkout-load.ts only: a single load-test
+      // client necessarily shares one IP across many simulated "users", which
+      // the per-route checkout/coupon throttles would otherwise reject before
+      // they ever reach the DB-level concurrency logic under test. Must never
+      // be set to 'true' in production — see docs/RUNBOOK.md.
+      skipIf: () => process.env.LOAD_TEST_MODE === 'true',
+    }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     PrismaModule,

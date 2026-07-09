@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import type { UserJSON } from '@clerk/backend';
-import { Role } from '../../../generated/prisma/client';
+import { Prisma, Role } from '../../../generated/prisma/client';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import { ClerkSyncService } from './clerk-sync.service';
 
@@ -106,5 +107,178 @@ describe('ClerkSyncService', () => {
       publicMetadata: { role: Role.ADMIN },
     });
     expect(clerk.users.updateUser).not.toHaveBeenCalled();
+  });
+
+  it('uses the primary phone number from the webhook payload when present', async () => {
+    await service.upsertFromWebhookUser(
+      webhookUser({
+        primary_phone_number_id: 'phone_1',
+        phone_numbers: [
+          { id: 'phone_1', phone_number: '+201000000001' },
+        ] as never,
+      }),
+    );
+    expect(prisma.user.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ phone: '+201000000001' }),
+      }),
+    );
+  });
+
+  it('falls back to the email when the webhook user has no name', async () => {
+    await service.upsertFromWebhookUser(
+      webhookUser({ first_name: null, last_name: null }),
+    );
+    expect(prisma.user.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ name: 'mariam@test.dev' }),
+      }),
+    );
+  });
+
+  it('rejects webhook users without a primary email', async () => {
+    await expect(
+      service.upsertFromWebhookUser(
+        webhookUser({ primary_email_address_id: null, email_addresses: [] }),
+      ),
+    ).rejects.toThrow('has no primary email');
+    expect(prisma.user.upsert).not.toHaveBeenCalled();
+  });
+
+  it('swallows unique-constraint collisions with an audit log entry', async () => {
+    prisma.user.upsert.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('collision', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+
+    await expect(
+      service.upsertFromWebhookUser(webhookUser()),
+    ).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'clerk-user-sync-collision' }),
+      expect.any(String),
+    );
+  });
+
+  it('rethrows non-P2002 errors from the sync upsert', async () => {
+    prisma.user.upsert.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(service.upsertFromWebhookUser(webhookUser())).rejects.toThrow(
+      'db down',
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('skips deletion when the webhook payload has no id', async () => {
+    await service.deleteFromWebhookUser({} as never);
+    expect(prisma.user.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('syncs a user from the Clerk API using primary email and phone', async () => {
+    clerk.users.getUser.mockResolvedValueOnce({
+      id: 'user_1',
+      firstName: 'Mariam',
+      lastName: 'Hassan',
+      primaryEmailAddressId: 'email_1',
+      primaryPhoneNumberId: 'phone_1',
+      emailAddresses: [{ id: 'email_1', emailAddress: 'mariam@test.dev' }],
+      phoneNumbers: [{ id: 'phone_1', phoneNumber: '+201000000001' }],
+    });
+
+    await service.syncFromClerk('user_1');
+
+    expect(prisma.user.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: {
+          id: 'user_1',
+          email: 'mariam@test.dev',
+          name: 'Mariam Hassan',
+          phone: '+201000000001',
+        },
+      }),
+    );
+  });
+
+  it('rejects Clerk API users without a primary email', async () => {
+    clerk.users.getUser.mockResolvedValueOnce({
+      id: 'user_1',
+      firstName: null,
+      lastName: null,
+      primaryEmailAddressId: null,
+      primaryPhoneNumberId: null,
+      emailAddresses: [],
+      phoneNumbers: [],
+    });
+
+    await expect(service.syncFromClerk('user_1')).rejects.toThrow(
+      'has no primary email',
+    );
+  });
+
+  it('only warns when role mirroring to Clerk fails', async () => {
+    clerk.users.updateUserMetadata.mockRejectedValueOnce(
+      new Error('clerk down'),
+    );
+
+    await expect(
+      service.mirrorRoleToClerk('user_1', Role.MANAGER),
+    ).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('pushes a name update to Clerk split into first/last name', async () => {
+    clerk.users.updateUser.mockResolvedValueOnce({});
+
+    await service.pushProfileToClerk('user_1', { name: 'Mariam A. Hassan' });
+
+    expect(clerk.users.updateUser).toHaveBeenCalledWith('user_1', {
+      firstName: 'Mariam',
+      lastName: 'A. Hassan',
+    });
+    expect(clerk.users.getUser).not.toHaveBeenCalled();
+  });
+
+  it('replaces the Clerk phone number, deleting superseded ones', async () => {
+    clerk.users.getUser.mockResolvedValueOnce({
+      phoneNumbers: [{ id: 'phone_old' }],
+    });
+    clerk.phoneNumbers.createPhoneNumber.mockResolvedValueOnce({
+      id: 'phone_new',
+    });
+    clerk.phoneNumbers.deletePhoneNumber.mockResolvedValueOnce({});
+
+    await service.pushProfileToClerk('user_1', { phone: '01000000001' });
+
+    expect(clerk.phoneNumbers.createPhoneNumber).toHaveBeenCalledWith({
+      userId: 'user_1',
+      phoneNumber: '+201000000001',
+      primary: true,
+      verified: true,
+    });
+    expect(clerk.phoneNumbers.deletePhoneNumber).toHaveBeenCalledWith(
+      'phone_old',
+    );
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('only warns when the pushed phone number is not a valid Egyptian number', async () => {
+    await expect(
+      service.pushProfileToClerk('user_1', { phone: 'not-a-phone' }),
+    ).resolves.toBeUndefined();
+    expect(clerk.phoneNumbers.createPhoneNumber).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('sets a random password and signs out other sessions', async () => {
+    clerk.users.updateUser.mockResolvedValueOnce({});
+
+    await service.setRandomPassword('user_1', 's3cret-password');
+
+    expect(clerk.users.updateUser).toHaveBeenCalledWith('user_1', {
+      password: 's3cret-password',
+      signOutOfOtherSessions: true,
+    });
   });
 });

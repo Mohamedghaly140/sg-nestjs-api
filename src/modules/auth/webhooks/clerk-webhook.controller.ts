@@ -10,14 +10,19 @@ import {
 import type { RawBodyRequest } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { Webhook } from 'svix';
 import { ERROR_CODES } from '../../../common/constants/error-codes';
 import { Public } from '../../../common/decorators/public.decorator';
 import { ClerkSyncService } from '../services/clerk-sync.service';
 
+// Rate-limit exempt: the Svix signature is verified before any processing
+// (401 on failure), so IP-based throttling only risks false-positive 429s
+// during legitimate Clerk retry/backfill floods. See ARCHITECTURE.md §7.
 @ApiTags('webhooks')
 @Public()
+@SkipThrottle()
 @Controller('webhooks/clerk')
 export class ClerkWebhookController {
   constructor(

@@ -15,7 +15,7 @@
 | **Resend** | Transactional email | Order confirmations, guest claim links |
 | **class-validator + class-transformer** | Validation | DTO-level declarative validation via global `ValidationPipe` |
 | **@nestjs/swagger** | API documentation | OpenAPI generation from controller/DTO decorators; Swagger UI served at `/api/docs`; every endpoint documented per [CODING_STANDARDS.md §9](./CODING_STANDARDS.md#9-api-documentation-swagger--openapi) |
-| **@nestjs/throttler** | Rate limiting | Protects public endpoints (checkout, coupon validation, webhooks) |
+| **@nestjs/throttler** | Rate limiting | Protects public endpoints (checkout, coupon validation); webhooks are signature-gated and throttle-exempt instead (see §7) |
 | **@nestjs/schedule** | Cron jobs | Expired-cart purge, unpaid-CARD-order expiry, guest-token cleanup |
 | **Pino (nestjs-pino)** | Logging | Structured JSON logs, request correlation |
 | **Firebase (FCM)** | Push notifications | **Future phase** — in-app notifications ship first |
@@ -69,7 +69,7 @@ HTTP Request
 | `ClerkAuthGuard` | Verifies Clerk Bearer JWT (`@clerk/backend`), loads the local user row, attaches `req.user`. 401 if missing/invalid, 403 if `active = false` |
 | `OptionalAuthGuard` | Same verification but never throws on absence — used by cart/checkout/product endpoints that serve both guests and users |
 | `RolesGuard` + `@Roles(Role.ADMIN, ...)` | Role check against the **DB** role (source of truth), after `ClerkAuthGuard` |
-| `ThrottlerGuard` | Global rate limiting; stricter overrides on checkout/coupon/webhook routes |
+| `ThrottlerGuard` | Global rate limiting; stricter overrides on checkout/coupon routes, `@SkipThrottle()` on webhook/health routes |
 
 ### Interceptors
 - `ResponseEnvelopeInterceptor` — wraps controller return values into `{ status, message, data, meta }`. Controllers can return `{ data, meta }` (paginated) or a bare object.

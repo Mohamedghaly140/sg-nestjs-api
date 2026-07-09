@@ -29,6 +29,7 @@ describe('error codes', () => {
       'COUPON_IN_USE',
       'SUBCATEGORY_CATEGORY_MISMATCH',
       'INVALID_VARIANT',
+      'PAYMENT_METHOD_UNAVAILABLE',
       'RATE_LIMITED',
       'INTERNAL_ERROR',
       'SERVICE_UNAVAILABLE',

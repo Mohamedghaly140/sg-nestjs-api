@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import {
   ConflictException,
   UnprocessableEntityException,
@@ -47,7 +47,7 @@ describe('OrdersService', () => {
     id: 'order_1',
     humanOrderId: 'ORD-000042',
     status: OrderStatus.PENDING,
-    paymentMethod: PaymentMethod.CARD,
+    paymentMethod: PaymentMethod.CASH,
     shippingFees: new Prisma.Decimal('65.00'),
     totalOrderPrice: new Prisma.Decimal('225.00'),
     discountApplied: new Prisma.Decimal('0.00'),
@@ -86,7 +86,9 @@ describe('OrdersService', () => {
     order: {
       create: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       findUnique: jest.fn(),
+      count: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
     },
@@ -163,7 +165,7 @@ describe('OrdersService', () => {
     await expect(
       service.checkout('user_1', {
         shippingAddressId: 'addr_1',
-        paymentMethod: PaymentMethod.CARD,
+        paymentMethod: PaymentMethod.CASH,
       }),
     ).resolves.toMatchObject({
       id: 'order_1',
@@ -241,6 +243,46 @@ describe('OrdersService', () => {
     );
   });
 
+  it('rejects CARD payment method at checkout since Geidea integration is not built yet', async () => {
+    await expect(
+      service.checkout('user_1', {
+        shippingAddressId: 'addr_1',
+        paymentMethod: PaymentMethod.CARD,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'PAYMENT_METHOD_UNAVAILABLE' },
+    });
+    expect(cartService.loadCartForCheckout).not.toHaveBeenCalled();
+  });
+
+  it('rejects CARD payment method at guest checkout', async () => {
+    await expect(
+      service.checkoutGuest(
+        { userId: 'user_ignored', sessionToken: 'session_1' },
+        {
+          paymentMethod: PaymentMethod.CARD,
+          contact: {
+            name: 'Guest',
+            phone: '+201000000001',
+            email: 'guest@example.com',
+          },
+          shipping: {
+            country: 'Egypt',
+            governorate: 'Cairo',
+            city: 'Nasr City',
+            area: 'District 7',
+            phone: '+201000000002',
+            addressLine1: '12 Street',
+            details: 'Floor 3',
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'PAYMENT_METHOD_UNAVAILABLE' },
+    });
+    expect(cartService.loadCartForCheckout).not.toHaveBeenCalled();
+  });
+
   it('rejects an empty checkout cart', async () => {
     cartService.loadCartForCheckout.mockResolvedValueOnce({
       ...cart,
@@ -250,7 +292,7 @@ describe('OrdersService', () => {
     await expect(
       service.checkout('user_1', {
         shippingAddressId: 'addr_1',
-        paymentMethod: PaymentMethod.CARD,
+        paymentMethod: PaymentMethod.CASH,
       }),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
@@ -270,7 +312,7 @@ describe('OrdersService', () => {
     await expect(
       service.checkout('user_1', {
         shippingAddressId: 'addr_1',
-        paymentMethod: PaymentMethod.CARD,
+        paymentMethod: PaymentMethod.CASH,
       }),
     ).rejects.toMatchObject({ response: { code: 'INVALID_VARIANT' } });
     expect(tx.product.updateMany).not.toHaveBeenCalled();
@@ -294,7 +336,7 @@ describe('OrdersService', () => {
     await expect(
       service.checkout('user_1', {
         shippingAddressId: 'addr_1',
-        paymentMethod: PaymentMethod.CARD,
+        paymentMethod: PaymentMethod.CASH,
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
@@ -333,6 +375,161 @@ describe('OrdersService', () => {
     expect(tx.order.findUnique).not.toHaveBeenCalled();
   });
 
+  it('rejects checkout when the shipping address does not belong to the user', async () => {
+    tx.address.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.checkout('user_1', {
+        shippingAddressId: 'addr_other',
+        paymentMethod: PaymentMethod.CASH,
+      }),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+    expect(cartService.loadCartForCheckout).not.toHaveBeenCalled();
+  });
+
+  it('locks lines in sorted product-id order, applies the coupon discount, and consumes it', async () => {
+    cartService.loadCartForCheckout.mockResolvedValueOnce({
+      ...cart,
+      items: [
+        {
+          ...cart.items[0],
+          id: 'cart_item_2',
+          productId: 'prod_2',
+          quantity: 1,
+          product: { ...cart.items[0].product, id: 'prod_2' },
+        },
+        cart.items[0],
+      ],
+    });
+    tx.product.findUnique.mockImplementation(
+      ({ where }: { where: { id: string } }) =>
+        Promise.resolve({
+          id: where.id,
+          name: 'Dress',
+          imageUrl: 'https://example.test/dress.jpg',
+          status: ProductStatus.ACTIVE,
+          colors: ['Black'],
+          sizes: ['M'],
+          quantity: 5,
+          priceAfterDiscount: new Prisma.Decimal('80.00'),
+        }),
+    );
+
+    await expect(
+      service.checkout('user_1', {
+        shippingAddressId: 'addr_1',
+        paymentMethod: PaymentMethod.CASH,
+        couponCode: 'SAVE20',
+      }),
+    ).resolves.toMatchObject({ id: 'order_1' });
+
+    // 2×80 + 1×80 = 240 subtotal, 20% coupon = 48 off, + 65 shipping = 257
+    expect(tx.product.findUnique.mock.calls[0][0]).toMatchObject({
+      where: { id: 'prod_1' },
+    });
+    expect(tx.product.findUnique.mock.calls[1][0]).toMatchObject({
+      where: { id: 'prod_2' },
+    });
+    expect(tx.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          couponId: 'coupon_1',
+          discountApplied: new Prisma.Decimal('48.00'),
+          totalOrderPrice: new Prisma.Decimal('257.00'),
+        }),
+      }),
+    );
+    expect(couponsService.consumeCoupon).toHaveBeenCalledWith(tx, {
+      couponId: 'coupon_1',
+      orderId: 'order_1',
+      userId: 'user_1',
+      anonEmail: undefined,
+    });
+  });
+
+  it('lists my orders with status filter, pagination, and summary mapping', async () => {
+    tx.order.findMany.mockResolvedValueOnce([
+      {
+        id: 'order_1',
+        humanOrderId: 'ORD-000042',
+        status: OrderStatus.PENDING,
+        paymentMethod: PaymentMethod.CASH,
+        isPaid: false,
+        totalOrderPrice: new Prisma.Decimal('225.00'),
+        shippingFees: new Prisma.Decimal('65.00'),
+        discountApplied: null,
+        createdAt: new Date('2026-07-09T12:00:00.000Z'),
+        _count: { items: 2 },
+      },
+    ]);
+    tx.order.count.mockResolvedValueOnce(6);
+
+    const result = await service.listMine('user_1', {
+      page: 2,
+      limit: 5,
+      status: OrderStatus.PENDING,
+    });
+
+    expect(tx.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user_1', status: OrderStatus.PENDING },
+        skip: 5,
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+    expect(result.data[0]).toMatchObject({
+      id: 'order_1',
+      totalOrderPrice: '225.00',
+      discountApplied: '0.00',
+      itemsCount: 2,
+    });
+    expect(result.meta).toMatchObject({ page: 2, limit: 5, totalItems: 6 });
+  });
+
+  it('gets my order detail and 404s when it is not mine', async () => {
+    await expect(service.getMine('user_1', 'order_1')).resolves.toMatchObject({
+      id: 'order_1',
+      itemsSubtotal: '160.00',
+    });
+    expect(tx.order.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'order_1', userId: 'user_1' } }),
+    );
+
+    tx.order.findFirst.mockResolvedValueOnce(null);
+    await expect(service.getMine('user_1', 'order_x')).rejects.toMatchObject({
+      response: { code: 'RESOURCE_NOT_FOUND' },
+    });
+  });
+
+  it('gets a guest order by unexpired token and rejects unknown tokens', async () => {
+    await expect(service.getGuest('a'.repeat(64))).resolves.toMatchObject({
+      id: 'order_1',
+    });
+    expect(tx.order.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          guestToken: 'a'.repeat(64),
+          guestTokenExpiresAt: { gt: expect.any(Date) },
+        },
+      }),
+    );
+
+    tx.order.findFirst.mockResolvedValueOnce(null);
+    await expect(service.getGuest('b'.repeat(64))).rejects.toMatchObject({
+      response: { code: 'CLAIM_TOKEN_INVALID' },
+    });
+  });
+
+  it('rejects claiming an unknown or expired token before attempting the update', async () => {
+    tx.order.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.claim('user_1', { token: 'c'.repeat(64) }),
+    ).rejects.toMatchObject({ response: { code: 'CLAIM_TOKEN_INVALID' } });
+    expect(tx.order.updateMany).not.toHaveBeenCalled();
+  });
+
   it('cancels pending unpaid user orders with restoration', async () => {
     tx.order.findFirst.mockResolvedValueOnce({
       id: 'order_1',
@@ -363,5 +560,95 @@ describe('OrdersService', () => {
         status: OrderStatus.CANCELLED,
       }),
     );
+  });
+
+  it('404s cancelMine when the order does not belong to the user', async () => {
+    tx.order.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.cancelMine('user_1', 'order_x')).rejects.toMatchObject(
+      { response: { code: 'RESOURCE_NOT_FOUND' } },
+    );
+    expect(tx.product.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects cancelMine for non-pending or already paid orders without touching stock', async () => {
+    tx.order.findFirst.mockResolvedValueOnce({
+      id: 'order_1',
+      status: OrderStatus.PROCESSING,
+      isPaid: true,
+      couponId: null,
+      items: [{ productId: 'prod_1', quantity: 2 }],
+    });
+
+    await expect(service.cancelMine('user_1', 'order_1')).rejects.toMatchObject(
+      {
+        response: { code: 'INVALID_STATUS_TRANSITION' },
+      },
+    );
+    expect(tx.product.updateMany).not.toHaveBeenCalled();
+    expect(couponsService.releaseCoupon).not.toHaveBeenCalled();
+    expect(eventEmitter.emit).not.toHaveBeenCalled();
+  });
+
+  it('skips coupon release when restoring inventory of a paid order', async () => {
+    await service.restoreOrderInventory(tx as never, {
+      id: 'order_1',
+      status: OrderStatus.PROCESSING,
+      isPaid: true,
+      couponId: 'coupon_1',
+      items: [{ productId: 'prod_1', quantity: 3 }],
+    });
+
+    expect(tx.product.updateMany).toHaveBeenCalledWith({
+      where: { id: 'prod_1' },
+      data: { quantity: { increment: 3 } },
+    });
+    expect(couponsService.releaseCoupon).not.toHaveBeenCalled();
+  });
+
+  it('loads an order for mail rendering and 404s when it is gone', async () => {
+    const mailOrder = {
+      id: 'order_1',
+      humanOrderId: 'ORD-000042',
+      status: OrderStatus.PENDING,
+      paymentMethod: PaymentMethod.CASH,
+      isPaid: false,
+      totalOrderPrice: new Prisma.Decimal('225.00'),
+      shippingFees: new Prisma.Decimal('65.00'),
+      discountApplied: new Prisma.Decimal('0.00'),
+      guestToken: null,
+      anonName: null,
+      anonEmail: null,
+      user: { email: 'user@example.com', name: 'User' },
+      items: [],
+    };
+    tx.order.findUnique.mockResolvedValueOnce(mailOrder);
+
+    await expect(service.getOrderForMail('order_1')).resolves.toBe(mailOrder);
+
+    tx.order.findUnique.mockResolvedValueOnce(null);
+    await expect(service.getOrderForMail('order_x')).rejects.toMatchObject({
+      response: { code: 'RESOURCE_NOT_FOUND' },
+    });
+  });
+
+  it('finds an order for restore and 404s when it is gone', async () => {
+    const restoreOrder = {
+      id: 'order_1',
+      status: OrderStatus.PENDING,
+      couponId: null,
+      isPaid: false,
+      items: [{ productId: 'prod_1', quantity: 2 }],
+    };
+    tx.order.findUnique.mockResolvedValueOnce(restoreOrder);
+
+    await expect(
+      service.findOrderForRestore(tx as never, 'order_1'),
+    ).resolves.toBe(restoreOrder);
+
+    tx.order.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      service.findOrderForRestore(tx as never, 'order_x'),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
   });
 });

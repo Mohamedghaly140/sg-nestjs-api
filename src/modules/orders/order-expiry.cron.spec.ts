@@ -41,6 +41,7 @@ describe('OrderExpiryCron', () => {
     prisma.order.updateMany.mockResolvedValue({ count: 2 });
     ordersService.findOrderForRestore.mockResolvedValue({
       id: 'order_1',
+      status: OrderStatus.PENDING,
       couponId: 'coupon_1',
       isPaid: false,
       items: [],
@@ -64,6 +65,25 @@ describe('OrderExpiryCron', () => {
         status: OrderStatus.CANCELLED,
       }),
     );
+  });
+
+  it('skips restore when the order is no longer PENDING after the lock is acquired', async () => {
+    // Simulates a concurrent cron run (overlapping deploy, accidental
+    // multi-replica) that already restored + cancelled this order while this
+    // run was blocked on the row lock.
+    ordersService.findOrderForRestore.mockResolvedValue({
+      id: 'order_1',
+      status: OrderStatus.CANCELLED,
+      couponId: 'coupon_1',
+      isPaid: false,
+      items: [],
+    });
+
+    await cron.expireUnpaidCardOrders();
+
+    expect(ordersService.restoreOrderInventory).not.toHaveBeenCalled();
+    expect(tx.order.update).not.toHaveBeenCalled();
+    expect(eventEmitter.emit).not.toHaveBeenCalled();
   });
 
   it('purges expired guest tokens', async () => {

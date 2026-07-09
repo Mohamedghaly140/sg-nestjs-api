@@ -29,6 +29,15 @@ import { QueryMyOrdersDto } from './dto/query-my-orders.dto';
 import { OrderCreatedEvent } from './events/order-created.event';
 import { OrderStatusChangedEvent } from './events/order-status-changed.event';
 
+// Prisma's default interactive-transaction timeout (5000ms) is too short for
+// the checkout transaction under lock contention: a burst of concurrent
+// checkouts for the same product serializes on lockAndValidateLines' row
+// lock, so requests queued behind it can wait past 5s and get a raw 500
+// instead of a clean 409 INSUFFICIENT_STOCK. Found via the Phase 11 load
+// test (test/load/checkout-load.ts, ~10-way contention timed out at ~5s);
+// raised with margin, not unbounded — see docs/testing/phase-11-load-test.md.
+const CHECKOUT_TRANSACTION_OPTIONS = { timeout: 15_000 };
+
 const ORDER_DETAIL_SELECT = {
   id: true,
   humanOrderId: true,
@@ -62,6 +71,7 @@ const ORDER_DETAIL_SELECT = {
 
 const ORDER_FOR_RESTORE_SELECT = {
   id: true,
+  status: true,
   couponId: true,
   isPaid: true,
   items: {
@@ -152,6 +162,7 @@ export class OrdersService {
   ) {}
 
   async checkout(userId: string, dto: CheckoutDto): Promise<OrderResponseDto> {
+    this.assertPaymentMethodAvailable(dto.paymentMethod);
     const order = await this.prisma.$transaction(async (tx) => {
       const address = await tx.address.findFirst({
         where: { id: dto.shippingAddressId, userId },
@@ -180,7 +191,7 @@ export class OrdersService {
           city: address.city,
         },
       });
-    });
+    }, CHECKOUT_TRANSACTION_OPTIONS);
 
     this.eventEmitter.emit('order.created', new OrderCreatedEvent(order.id));
     return this.toOrderResponse(order);
@@ -190,6 +201,7 @@ export class OrdersService {
     identity: CartServiceIdentity,
     dto: GuestCheckoutDto,
   ): Promise<OrderResponseDto & { claimToken: 'sent-by-email' }> {
+    this.assertPaymentMethodAvailable(dto.paymentMethod);
     const order = await this.prisma.$transaction(async (tx) => {
       const cart = identity.sessionToken
         ? await this.cartService.loadCartForCheckout(tx, {
@@ -210,7 +222,7 @@ export class OrdersService {
           city: dto.shipping.city,
         },
       });
-    });
+    }, CHECKOUT_TRANSACTION_OPTIONS);
 
     this.eventEmitter.emit('order.created', new OrderCreatedEvent(order.id));
     return { ...this.toOrderResponse(order), claimToken: 'sent-by-email' };
@@ -319,10 +331,7 @@ export class OrdersService {
       await this.lockOrder(tx, id);
       const existing = await tx.order.findFirst({
         where: { id, userId },
-        select: {
-          status: true,
-          ...ORDER_FOR_RESTORE_SELECT,
-        },
+        select: ORDER_FOR_RESTORE_SELECT,
       });
       if (!existing) {
         throw this.notFound('Order not found');
@@ -715,5 +724,15 @@ export class OrdersService {
       code: ERROR_CODES.CLAIM_TOKEN_INVALID,
       message: 'Claim token is invalid or expired',
     });
+  }
+
+  private assertPaymentMethodAvailable(paymentMethod: PaymentMethod): void {
+    if (paymentMethod === PaymentMethod.CARD) {
+      throw new UnprocessableEntityException({
+        code: ERROR_CODES.PAYMENT_METHOD_UNAVAILABLE,
+        message:
+          'Card payments are not available yet; please select Cash on Delivery',
+      });
+    }
   }
 }

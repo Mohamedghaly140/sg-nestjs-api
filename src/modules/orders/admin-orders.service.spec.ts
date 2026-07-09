@@ -240,6 +240,178 @@ describe('AdminOrdersService', () => {
     );
   });
 
+  it('returns full admin order detail including coupon and item line totals', async () => {
+    tx.order.findUnique.mockResolvedValueOnce({
+      ...adminOrder,
+      coupon: { name: 'SAVE20', discount: new Prisma.Decimal('20.00') },
+    });
+
+    await expect(service.get('order_1')).resolves.toMatchObject({
+      id: 'order_1',
+      itemsSubtotal: '160.00',
+      coupon: { name: 'SAVE20', discount: '20.00' },
+      user: expect.objectContaining({ id: 'user_1' }),
+      items: [
+        expect.objectContaining({ price: '160.00', lineTotal: '160.00' }),
+      ],
+    });
+  });
+
+  it('404s admin detail for unknown orders', async () => {
+    tx.order.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.get('order_x')).rejects.toMatchObject({
+      response: { code: 'RESOURCE_NOT_FOUND' },
+    });
+  });
+
+  it('404s status updates for unknown orders', async () => {
+    tx.order.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.updateStatus('manager_1', 'order_x', {
+        status: OrderStatus.PROCESSING,
+      }),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+    expect(tx.order.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects cancelling a paid order (must be refunded instead)', async () => {
+    tx.order.findUnique.mockResolvedValueOnce({
+      id: 'order_1',
+      status: OrderStatus.PROCESSING,
+      paymentMethod: PaymentMethod.CASH,
+      isPaid: true,
+      couponId: null,
+      items: [{ productId: 'prod_1', quantity: 1 }],
+    });
+
+    await expect(
+      service.updateStatus('manager_1', 'order_1', {
+        status: OrderStatus.CANCELLED,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(ordersService.restoreOrderInventory).not.toHaveBeenCalled();
+  });
+
+  it('moves processing orders to shipped without touching stock', async () => {
+    tx.order.findUnique.mockResolvedValueOnce({
+      id: 'order_1',
+      status: OrderStatus.PROCESSING,
+      paymentMethod: PaymentMethod.CASH,
+      isPaid: false,
+      couponId: null,
+      items: [{ productId: 'prod_1', quantity: 1 }],
+    });
+
+    await expect(
+      service.updateStatus('manager_1', 'order_1', {
+        status: OrderStatus.SHIPPED,
+      }),
+    ).resolves.toMatchObject({ id: 'order_1' });
+    expect(tx.product.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('delivers shipped paid orders and stamps isDelivered/deliveredAt', async () => {
+    tx.order.findUnique.mockResolvedValueOnce({
+      id: 'order_1',
+      status: OrderStatus.SHIPPED,
+      paymentMethod: PaymentMethod.CASH,
+      isPaid: true,
+      couponId: null,
+      items: [{ productId: 'prod_1', quantity: 1 }],
+    });
+
+    await service.updateStatus('manager_1', 'order_1', {
+      status: OrderStatus.DELIVERED,
+    });
+
+    expect(tx.order.update).toHaveBeenCalledWith({
+      where: { id: 'order_1' },
+      data: {
+        status: OrderStatus.DELIVERED,
+        notes: undefined,
+        isDelivered: true,
+        deliveredAt: expect.any(Date),
+      },
+    });
+  });
+
+  it('rejects transitions with no defined path (e.g. pending → delivered)', async () => {
+    await expect(
+      service.updateStatus('manager_1', 'order_1', {
+        status: OrderStatus.DELIVERED,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'INVALID_STATUS_TRANSITION' },
+    });
+    expect(tx.order.update).not.toHaveBeenCalled();
+  });
+
+  it('404s markPaid for unknown orders', async () => {
+    tx.order.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.markPaid('manager_1', 'order_x'),
+    ).rejects.toMatchObject({ response: { code: 'RESOURCE_NOT_FOUND' } });
+  });
+
+  it('filters the admin list by creation date range', async () => {
+    await service.list({
+      page: 1,
+      limit: 20,
+      from: '2026-07-01',
+      to: '2026-07-09',
+    });
+
+    expect(tx.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          createdAt: {
+            gte: new Date('2026-07-01'),
+            lte: new Date('2026-07-09'),
+          },
+        },
+      }),
+    );
+  });
+
+  it('falls back to anonName then "Guest" for customer names in the list', async () => {
+    tx.order.findMany.mockResolvedValueOnce([
+      {
+        id: 'order_2',
+        humanOrderId: 'ORD-000043',
+        status: OrderStatus.PENDING,
+        paymentMethod: PaymentMethod.CASH,
+        isPaid: false,
+        totalOrderPrice: new Prisma.Decimal('100.00'),
+        createdAt: adminOrder.createdAt,
+        anonName: 'Anon Buyer',
+        user: null,
+        _count: { items: 1 },
+      },
+      {
+        id: 'order_3',
+        humanOrderId: 'ORD-000044',
+        status: OrderStatus.PENDING,
+        paymentMethod: PaymentMethod.CASH,
+        isPaid: false,
+        totalOrderPrice: null,
+        createdAt: adminOrder.createdAt,
+        anonName: null,
+        user: null,
+        _count: { items: 1 },
+      },
+    ]);
+
+    await expect(service.list({ page: 1, limit: 20 })).resolves.toMatchObject({
+      data: [
+        { customerName: 'Anon Buyer' },
+        { customerName: 'Guest', totalOrderPrice: '0.00' },
+      ],
+    });
+  });
+
   it('rejects marking a cancelled CASH order paid', async () => {
     tx.order.findUnique.mockResolvedValueOnce({
       id: 'order_1',
