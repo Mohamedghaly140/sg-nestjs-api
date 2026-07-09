@@ -47,7 +47,7 @@ Swagger: `Liveness/readiness check (DB ping)` · `@ApiResponse` 200/503 · `Heal
 ## 2. Webhooks
 
 ### POST /webhooks/clerk
-Clerk identity sync (`user.created`, `user.updated`, `user.deleted`) · Auth: Public (Svix-signed)
+Clerk identity sync (`user.created`, `user.updated`, `user.deleted`) · Auth: Public (Svix-signed) · Throttler-exempt (`@SkipThrottle()` — signature verification gates the route at 401 before any processing; IP throttling would 429 legitimate Clerk retry/backfill floods, see [CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security))
 Headers: `svix-id`, `svix-timestamp`, `svix-signature` (required)
 Request body: raw Clerk event payload (verified before parsing)
 Validation: Svix signature against `CLERK_WEBHOOK_SECRET`; unknown event types acknowledged and ignored
@@ -366,7 +366,7 @@ Clear cart · Success (204) · Notes: anonymous cart row deleted; cookie cleared
 ## 10. Coupons
 
 ### POST /coupons/validate
-Preview a coupon against the current cart · Auth: Optional
+Preview a coupon against the current cart · Auth: Optional · Throttle 10/min
 Body: `{ code, email? }` (email used for the per-user check on guest flows)
 Success (200): `{ "valid": true, "code": "SAVE20", "discountPercent": "20.00", "discountApplied": "221.00", "itemsSubtotal": "1105.00" }`
 Errors: 404 unknown code; 422 `COUPON_EXPIRED` / `COUPON_INACTIVE`; 409 `COUPON_EXHAUSTED` / `COUPON_USER_LIMIT`
@@ -503,6 +503,8 @@ Success (200): `{ "geideaStatus": "…", "reconciled": boolean }`
 ---
 
 ## 13. Notifications
+
+> **Phase 9 — not yet implemented.** Phase 9 was explicitly skipped (see [DEVELOPMENT_PHASES.md](./DEVELOPMENT_PHASES.md)); no notifications controller exists in the codebase. The endpoints below are the agreed contract for when it ships.
 
 ### GET /notifications
 My notifications · Auth: User · Query: `page, limit, read?`

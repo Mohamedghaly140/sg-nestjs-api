@@ -1,4 +1,6 @@
 > ⚠️ **Historical reference (frozen).** This folder is the admin-dashboard contract extracted from the original Next.js MVP. On **2026-07-07** it was merged into [`../../API_SPECIFICATION.md`](../../API_SPECIFICATION.md), adapted to this backend's conventions (envelope, pagination meta, error codes, paths/verbs, role tiers). **Where the two differ, `API_SPECIFICATION.md` is authoritative** — do not implement from this folder.
+>
+> **Frontend integrators:** the current, code-accurate admin dashboard integration guide lives at [`../../integration/admin/`](../../integration/admin/) (added 2026-07-10) — use that instead of this folder.
 
 # Admin Backend API Specification
 

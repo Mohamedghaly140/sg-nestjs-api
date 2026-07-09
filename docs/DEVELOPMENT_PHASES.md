@@ -214,6 +214,15 @@
 
 **Phase 11:** stricter per-route throttles (checkout, coupon validate) and an explicit signature-gated throttle-exemption policy for webhooks (not stricter webhook throttles — see [CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security)); security review pass; load test on checkout concurrency; coverage targets met (services ≥ 80%, money paths ≥ 95%); deployment config + runbook; final docs audit (incl. OpenAPI spec complete and accurate for all endpoints). Acceptance: launch checklist signed off.
 
+**Phase 11 status (2026-07-10):** all engineering deliverables complete —
+- [x] Per-route throttles + webhook `@SkipThrottle()` policy (see CHANGELOG 2026-07-09)
+- [x] Security review pass ([SECURITY-REVIEW.md](./SECURITY-REVIEW.md); CORS validator + dependency-audit fixes)
+- [x] Checkout concurrency load test ([testing/phase-11-load-test.md](./testing/phase-11-load-test.md); found & fixed the checkout transaction-timeout bug)
+- [x] Coverage targets: money paths ≥ 95% (orders 99.3%, admin-orders 100% lines), every service ≥ 80% (54 suites / 316 unit tests)
+- [x] Deployment config + runbook ([RUNBOOK.md](./RUNBOOK.md))
+- [x] Final docs audit: 49 routes verified against the spec + Swagger decorators; 3 doc drifts fixed (CHANGELOG 2026-07-10)
+- [ ] **Acceptance — launch checklist sign-off** ([RUNBOOK.md §9](./RUNBOOK.md#9-launch-checklist)): pending actual deployment; requires decisions/actions outside the repo (hosting platform, production Clerk instance + webhook config, `CORS_ORIGINS` for the real storefront/dashboard domains, DB backups). Note Phases 7 (Geidea) and 9 (Notifications) remain explicitly skipped — CARD checkout is gated with 422 `PAYMENT_METHOD_UNAVAILABLE`, so a CASH-only launch is possible.
+
 ---
 
 ## Master Implementation Progress
@@ -232,6 +241,6 @@
 - [x] Phase 8 — Emails (Resend)
 - [ ] Phase 9 — Notifications
 - [x] Phase 10 — Analytics
-- [ ] Phase 11 — Hardening & Launch
+- [ ] Phase 11 — Hardening & Launch *(engineering complete 2026-07-10; awaiting deployment-time launch-checklist sign-off — see Phase 11 status above)*
 
 **Future (explicitly out of scope now):** Bosta, FCM push, automated Geidea refunds, verified-purchase reviews, address snapshots, SKU variants, Redis, AR/EN content, invoice PDFs, search engine. See [FEATURES.md §12](./FEATURES.md#12-future-enhancements-out-of-current-scope).

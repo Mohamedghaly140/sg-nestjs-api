@@ -2,6 +2,22 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-10 — Phase 11 Hardening · Final docs audit (OpenAPI/spec vs code)
+
+- Ran the full endpoint audit (`api-documenter` agent): all 49 controller routes across 24 controllers verified against `docs/API_SPECIFICATION.md` for method/path/auth/status-code/error-code accuracy, plus Swagger decorator coverage (`@ApiTags`/`@ApiOperation`/`@ApiResponse` present on all controllers; DTOs carry `@ApiProperty`, with `PartialType` correctly inheriting metadata on update DTOs). No code-side gaps found — three doc-side fixes applied:
+  - `POST /coupons/validate` spec entry now documents its 10/min throttle (code had it since the rate-limiting gap-closure task; the spec entry lagged).
+  - `POST /webhooks/clerk` spec entry now documents the `@SkipThrottle()` exemption and its signature-gated rationale, matching `CODING_STANDARDS.md` §6.
+  - `API_SPECIFICATION.md` §13 (Notifications) now carries an explicit "Phase 9 — not yet implemented" marker like §12's Phase 7 marker — previously it read as live endpoints despite no notifications controller existing.
+- Verified as part of this pass: CARD 422 `PAYMENT_METHOD_UNAVAILABLE` documented and decorated on both checkout endpoints; coupon-validate 422/409 error split matches code; admin product delete's 200 `{deleted, archived}` contract matches.
+- Full verification on the final Phase 11 state: `pnpm lint`, `pnpm build`, `pnpm test` (54 suites / 316 tests), `pnpm test:e2e` (21 suites / 87 tests) all pass against the real dev DB.
+
+## 2026-07-10 — Docs · Admin dashboard frontend integration guide
+
+- Added `docs/integration/admin/` — a frontend-facing integration guide for the admin dashboard covering all 49 live admin endpoints across 13 files: `README.md` (doc map, what's not built yet), `00-conventions.md` (Clerk Bearer auth, role tiers, envelope, pagination, validation, throttle, full error-code table), and per-module docs `01-dashboard` … `10-uploads` (each endpoint with params/validation tables, example JSON request + enveloped response, endpoint-specific error tables, and integration notes: the Cloudinary signed direct-upload workflow, the order-status state machine with the exact legal transitions from `AdminOrdersService.applyTransition`, coupon lifecycle semantics, staff-user guardrails).
+- Unbuilt surfaces are included but flagged **"Not yet available — do not integrate"**: `11-notifications.md` (Phase 9 broadcast) and `POST /admin/orders/:id/verify-payment` (Phase 7), matching `DEVELOPMENT_PHASES.md` (Phases 7 and 9 not started).
+- Content written from code (controllers/DTOs/guards) and cross-checked against `API_SPECIFICATION.md` (which stays authoritative); the frozen `docs/api/admin/` folder's README now points frontend integrators at the new guide.
+- Docs only — no code, schema, endpoint, or phase change.
+
 ## 2026-07-10 — Phase 11 Hardening · Deployment config & operations runbook
 
 - Added `docs/RUNBOOK.md`: single-instance deployment model (in-process crons/events are not replica-deduplicated — N replicas would send N copies of each transactional email), full env-var matrix mirroring `src/config/env.validation.ts`, build/migrate/start order (`prisma migrate deploy` before starting new code, forward-only migrations, never `migrate dev`/`reset` in prod), post-deploy verification steps (health DB-ping, Swagger, Clerk webhook test event, smoke), scheduled-jobs table with failure modes, operational notes (envelope-aware monitoring, audit-log filtering, proxy real-IP requirement for throttling), the standing **`LOAD_TEST_MODE` must never be set on a deployed instance** warning promised by the load-test changelog entry, rollback policy, and the Phase 11 launch checklist.
