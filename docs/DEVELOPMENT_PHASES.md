@@ -6,7 +6,7 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–6 are complete.** Active phase: **Phase 7** (Payments — Geidea).
+**Current state:** **Phases 0–6 and 8 are complete.** Phase 7 (Payments — Geidea) was explicitly skipped per user instruction and remains not started; resume Phase 7 when card-payment work is requested.
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -165,6 +165,7 @@
 
 **Purpose:** card payments via Geidea Checkout ([ADR-0002](./ADR-0002-geidea-payment-gateway.md)).
 **Dependencies:** Phase 6, Geidea merchant sandbox credentials. **DB:** `geideaSessionId`, `geideaOrderId` (Migration 001).
+**Status note:** explicitly skipped per user instruction while implementing Phase 8; no Geidea/payment-session code has been built yet.
 
 **Features / tasks**
 - [ ] `GeideaService`: signed create-session, session reuse (idempotent), config from env
@@ -177,17 +178,18 @@
 
 ---
 
-## Phase 8 — Emails (Resend) ⬜
+## Phase 8 — Emails (Resend) ✅
 
 **Purpose:** transactional email on the events emitted by Phases 6–7.
-**Dependencies:** Phases 6–7, Resend API key + verified domain.
+**Dependencies:** Phase 6 order events; Phase 7 was not actually load-bearing because CASH `markPaid` already emits `order.paid`. The future Geidea webhook should emit the same event with no MailModule changes needed. Real Resend-domain delivery still needs live credentials and verified-domain validation.
 
 **Features / tasks**
-- [ ] MailModule + templates: order confirmation (registered/guest+claim link), payment receipt, status updates
-- [ ] Event listeners (`order.created`, `order.paid`, `order.status_changed`) — post-commit, non-blocking, 3-retry backoff
-- [ ] Failure logging that never breaks the originating flow
+- [x] MailModule + templates: order confirmation (registered/guest+claim link), payment receipt, status updates
+- [x] Shared styled HTML layout for all transactional mail templates, with automatic HTML escaping and literal plain-text URL output
+- [x] Event listeners (`order.created`, `order.paid`, `order.status_changed`) — post-commit, non-blocking, 3-retry backoff
+- [x] Failure logging that never breaks the originating flow
 
-**Acceptance criteria:** email failure ≠ request failure (fault-injection test); guest confirmation contains a working claim link; templates render with seeded orders.
+**Acceptance criteria:** email failure ≠ request failure (fault-injection test); guest confirmation contains a working claim link; templates render with seeded orders. Live Resend delivery is sandbox/mock-only until `RESEND_API_KEY`, `MAIL_FROM`, and a verified sending domain are configured.
 
 ---
 
@@ -225,7 +227,7 @@
 - [x] Phase 5 — Coupons & Shipping
 - [x] Phase 6 — Checkout & Orders
 - [ ] Phase 7 — Payments (Geidea)
-- [ ] Phase 8 — Emails (Resend)
+- [x] Phase 8 — Emails (Resend)
 - [ ] Phase 9 — Notifications
 - [ ] Phase 10 — Analytics
 - [ ] Phase 11 — Hardening & Launch

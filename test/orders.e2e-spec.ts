@@ -10,6 +10,7 @@ import {
 import type { PrismaService } from '../src/prisma/prisma.service';
 import { authHeader, TEST_TOKENS } from './support/clerk-test-utils';
 import { createCatalogTestApp } from './support/catalog-test-app';
+import { createCapturingResendClient } from './support/mail-test-utils';
 
 describe('/orders (e2e)', () => {
   let app: INestApplication<App>;
@@ -17,12 +18,18 @@ describe('/orders (e2e)', () => {
   let categoryId: string;
   let productId: string;
   let addressId: string;
+  const mail = createCapturingResendClient();
 
   beforeAll(async () => {
-    ({ app, prisma } = await createCatalogTestApp());
+    process.env.MAIL_FROM = 'SG Couture <orders@test.dev>';
+    process.env.STOREFRONT_URL = 'https://storefront.test';
+    ({ app, prisma } = await createCatalogTestApp({
+      resendClient: mail.client,
+    }));
   });
 
   beforeEach(async () => {
+    mail.reset();
     await resetFixtures();
   });
 
@@ -123,6 +130,9 @@ describe('/orders (e2e)', () => {
   }
 
   async function createUserCart(quantity = 1) {
+    // A registered user's cart is emptied (not deleted) on checkout, so a
+    // prior order in the same test can leave a zeroed-out cart row behind.
+    await prisma.cart.deleteMany({ where: { userId: 'user_seed_customer' } });
     await prisma.cart.create({
       data: {
         userId: 'user_seed_customer',
@@ -161,6 +171,14 @@ describe('/orders (e2e)', () => {
     });
   }
 
+  async function waitForMailCount(count: number) {
+    const startedAt = Date.now();
+    while (mail.sent.length < count && Date.now() - startedAt < 1000) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(mail.sent).toHaveLength(count);
+  }
+
   const guestBody = {
     paymentMethod: PaymentMethod.CARD,
     contact: {
@@ -192,6 +210,14 @@ describe('/orders (e2e)', () => {
       .expect(201);
 
     expect(created.body.data.totalOrderPrice).toBe('145.00');
+    await waitForMailCount(1);
+    expect(mail.sent[0]).toEqual(
+      expect.objectContaining({
+        to: 'customer.seed@sgcouture.test',
+        subject: expect.stringContaining('ORD-'),
+        text: expect.stringContaining('Order'),
+      }),
+    );
 
     await request(app.getHttpServer())
       .get('/api/v1/orders')
@@ -210,7 +236,8 @@ describe('/orders (e2e)', () => {
       .expect(({ body }) => {
         expect(body.data.status).toBe(OrderStatus.CANCELLED);
       });
-  });
+    await waitForMailCount(2);
+  }, 15000);
 
   it('creates, fetches, and claims a guest order', async () => {
     await createGuestCart('e2e-orders-guest');
@@ -226,6 +253,11 @@ describe('/orders (e2e)', () => {
       where: { id: created.body.data.id },
       select: { guestToken: true },
     });
+    await waitForMailCount(1);
+    expect(mail.sent[0]?.to).toBe('guest-orders@example.com');
+    expect(mail.sent[0]?.text).toContain(
+      `https://storefront.test/orders/claim?token=${row.guestToken}`,
+    );
 
     await request(app.getHttpServer())
       .get(`/api/v1/orders/guest/${row.guestToken}`)
@@ -236,7 +268,7 @@ describe('/orders (e2e)', () => {
       .set(authHeader(TEST_TOKENS.customer))
       .send({ token: row.guestToken })
       .expect(200);
-  });
+  }, 10000);
 
   it('supports admin status transitions and CASH mark-paid', async () => {
     await createUserCart(1);
@@ -254,12 +286,74 @@ describe('/orders (e2e)', () => {
       .set(authHeader(TEST_TOKENS.manager))
       .send({ status: OrderStatus.PROCESSING })
       .expect(200);
+    await waitForMailCount(1);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/admin/orders/${created.body.data.id}/mark-paid`)
       .set(authHeader(TEST_TOKENS.manager))
       .expect(200);
-  });
+    await waitForMailCount(2);
+    expect(mail.sent[1]?.subject).toContain('Payment received');
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/admin/orders/${created.body.data.id}/status`)
+      .set(authHeader(TEST_TOKENS.manager))
+      .send({ status: OrderStatus.SHIPPED })
+      .expect(200);
+    await waitForMailCount(3);
+    expect(mail.sent[2]?.subject).toContain('has shipped');
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/admin/orders/${created.body.data.id}/status`)
+      .set(authHeader(TEST_TOKENS.manager))
+      .send({ status: OrderStatus.DELIVERED })
+      .expect(200);
+    await waitForMailCount(4);
+    expect(mail.sent[3]?.subject).toContain('has been delivered');
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/admin/orders/${created.body.data.id}/status`)
+      .set(authHeader(TEST_TOKENS.manager))
+      .send({ status: OrderStatus.REFUNDED })
+      .expect(200);
+    await waitForMailCount(5);
+    expect(mail.sent[4]?.subject).toContain('has been refunded');
+  }, 20000);
+
+  it('sends cancellation status email but never fails the request on mail failure', async () => {
+    await createUserCart(1);
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .set(authHeader(TEST_TOKENS.customer))
+      .send({
+        shippingAddressId: addressId,
+        paymentMethod: PaymentMethod.CARD,
+      })
+      .expect(201);
+    await waitForMailCount(1);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${created.body.data.id}/cancel`)
+      .set(authHeader(TEST_TOKENS.customer))
+      .expect(200);
+    await waitForMailCount(2);
+    expect(mail.sent[1]?.subject).toContain('has been cancelled');
+
+    mail.reset();
+    mail.fail();
+    await createUserCart(1);
+    await request(app.getHttpServer())
+      .post('/api/v1/orders')
+      .set(authHeader(TEST_TOKENS.customer))
+      .send({
+        shippingAddressId: addressId,
+        paymentMethod: PaymentMethod.CARD,
+      })
+      .expect(201);
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(mail.send).toHaveBeenCalled();
+  }, 15000);
 
   it('allows only one of two concurrent guest checkouts for the last unit', async () => {
     await prisma.product.update({

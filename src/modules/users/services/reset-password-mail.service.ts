@@ -1,21 +1,31 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
 import { ERROR_CODES } from '../../../common/constants/error-codes';
+import {
+  RESEND_CLIENT,
+  type ResendClient,
+} from '../../mail/resend-client.provider';
 
 @Injectable()
 export class ResetPasswordMailService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    @Inject(RESEND_CLIENT)
+    private readonly resend: ResendClient | null,
+  ) {}
 
   async sendPasswordResetNotice(email: string, name: string): Promise<void> {
-    const apiKey = this.config.get<string>('mail.resendApiKey');
     const from = this.config.get<string>('mail.from');
-    if (!apiKey || !from) {
+    if (!this.resend || !from) {
       throw this.unavailable();
     }
 
     try {
-      const result = await new Resend(apiKey).emails.send({
+      const result = await this.resend.emails.send({
         from,
         to: email,
         subject: 'Your SG Couture password was reset',

@@ -1,6 +1,6 @@
 # SG Couture — Coding Standards
 
-> **Status:** Living document · **Last updated:** 2026-07-07 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing, API documentation (Swagger).
+> **Status:** Living document · **Last updated:** 2026-07-09 · Covers: conventions, response envelope, validation, error handling, logging, security, env vars, testing, API documentation (Swagger).
 
 ## 1. Naming Conventions
 
@@ -164,3 +164,8 @@ Every completed endpoint is documented in Swagger via `@nestjs/swagger` **in the
 - Derived DTOs use `PartialType`/`PickType`/`OmitType` from `@nestjs/swagger` so metadata is inherited.
 
 **Definition of Done:** the endpoint renders correctly in the Swagger UI at `/api/docs` — right tag, auth padlock where protected, request/response schemas complete. This is part of the mandatory post-task checklist in `CLAUDE.md`.
+
+## 10. Transactional Email Templates
+
+- All transactional email HTML renders through `renderMailLayout()` in `src/modules/mail/templates/mail-layout.template.ts`; feature templates pass typed content blocks instead of building ad-hoc HTML strings.
+- The layout auto-escapes dynamic values for HTML rendering. Plain-text email output intentionally walks the same raw block data without HTML escaping so URLs remain literal.

@@ -29,6 +29,7 @@ No caching layer at launch. Redis may be introduced later for cart hot-paths and
 
 - Modules communicate through **exported services** (never by importing another module's Prisma queries or controllers).
 - Domain events that cross modules (e.g., "order paid" → notification + email) are dispatched through lightweight in-process event emitters (`@nestjs/event-emitter`) so Orders doesn't depend on Notifications/Mail directly.
+- Event payloads carry the owning aggregate id plus semantically required transition data (for example, target order `status`). Event listeners that need full details fetch them through the owning module's exported service, never by reaching into another module's Prisma queries directly.
 
 ### Dependency flow
 
@@ -106,7 +107,7 @@ HTTP Request
 | `OrdersModule` | checkout (registered + guest), stock reservation, order lifecycle, claiming, humanOrderId, expiry cron | Prisma, Cart, Coupons, Shipping, EventEmitter |
 | `PaymentsModule` | Geidea session creation, webhook, refunds | Prisma, Orders |
 | `NotificationsModule` | in-app notifications, event listeners | Prisma |
-| `MailModule` | Resend templates + senders, event listeners | Resend |
+| `MailModule` | Resend templates + senders, event listeners | Orders, Resend |
 | `UploadsModule` | Cloudinary signed uploads/deletes | Cloudinary |
 | `AnalyticsModule` | dashboard metrics (ADMIN) | Prisma |
 | `HealthModule` | `/health` (Terminus) | Prisma |

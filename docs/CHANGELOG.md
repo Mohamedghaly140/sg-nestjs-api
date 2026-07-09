@@ -2,6 +2,19 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-09 — Phase 8 Emails · Shared styled layout
+
+- Added a reusable `renderMailLayout()` email shell with SG Couture brand constants, table-based inline-CSS HTML, hidden preheader text, mobile-only media tweaks, and automatic HTML escaping inside block renderers.
+- Refactored order confirmation, payment receipt, and order status update templates to build typed content blocks and render through the shared layout while preserving their existing subject/status copy and literal plain-text guest claim URL behavior.
+- Removed superseded ad-hoc HTML/text helper functions from the order mail template types and added focused layout tests covering preview text, headings, paragraphs, item tables, totals, buttons, and HTML escaping. Docs touched: `DEVELOPMENT_PHASES.md`, `CODING_STANDARDS.md`, and this changelog. No schema, migration, API spec, or ADR change.
+
+## 2026-07-09 — Phase 8 Emails · Resend transactional mail
+
+- Added `MailModule` with a shared nullable Resend client provider, non-blocking `MailService` with 3-attempt exponential backoff, order mail event listeners, and plain TypeScript templates for order confirmations, guest claim links, payment receipts, and status updates.
+- Preserved module boundaries by adding `OrdersService.getOrderForMail()` as the single order-read surface for mail listeners; `OrderStatusChangedEvent` now carries the target status at emit time to avoid racy post-hoc status re-fetches across rapid transitions.
+- Refactored the admin customer reset-password notice to reuse the shared `RESEND_CLIENT` while keeping its existing synchronous 503-on-missing-config behavior. Phase 7 remains explicitly skipped; this is safe because Phase 6 already emits `order.created`, `order.status_changed`, and CASH `order.paid`, and the future Geidea webhook will emit the same `order.paid` event.
+- Tests added/updated: Resend provider, MailService retry/no-op behavior, order mail listener branching/filtering, reset-password mail injection, order event payload expectations, and orders e2e mail capture/fault-injection coverage. Docs touched: `FEATURES.md`, `ARCHITECTURE.md`, `DEVELOPMENT_PHASES.md`, and this changelog. No schema, migration, API spec, or ADR change.
+
 ## 2026-07-09 — Phase 6 Checkout & Orders · Adversarial review hardening
 
 - Fixed `OrdersService.claim()`'s read-then-write race: it looked up the order by `guestToken` (unlocked), locked the row, then unconditionally updated it by id — a second concurrent claim of the same still-valid token could pass the initial lookup before the first committed, then reassign `userId`/`claimedByUserId` after the first claimant had already consumed the token. Replaced the unconditional update with a conditional `updateMany` re-checking `{ id, guestToken: dto.token, guestTokenExpiresAt: { gt: now } }`; `count === 0` now collapses into the existing 404 `CLAIM_TOKEN_INVALID` path, matching the endpoint's documented no-oracle/idempotent-re-claim behavior in `docs/API_SPECIFICATION.md`.

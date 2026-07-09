@@ -72,11 +72,46 @@ const ORDER_FOR_RESTORE_SELECT = {
   },
 } satisfies Prisma.OrderSelect;
 
+const ORDER_FOR_MAIL_SELECT = {
+  id: true,
+  humanOrderId: true,
+  status: true,
+  paymentMethod: true,
+  isPaid: true,
+  totalOrderPrice: true,
+  shippingFees: true,
+  discountApplied: true,
+  guestToken: true,
+  anonName: true,
+  anonEmail: true,
+  user: {
+    select: {
+      email: true,
+      name: true,
+    },
+  },
+  items: {
+    select: {
+      quantity: true,
+      price: true,
+      product: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: { id: 'asc' },
+  },
+} satisfies Prisma.OrderSelect;
+
 type OrderDetail = Prisma.OrderGetPayload<{
   select: typeof ORDER_DETAIL_SELECT;
 }>;
 export type OrderForRestore = Prisma.OrderGetPayload<{
   select: typeof ORDER_FOR_RESTORE_SELECT;
+}>;
+export type OrderForMail = Prisma.OrderGetPayload<{
+  select: typeof ORDER_FOR_MAIL_SELECT;
 }>;
 
 interface CheckoutLine {
@@ -308,9 +343,20 @@ export class OrdersService {
 
     this.eventEmitter.emit(
       'order.status_changed',
-      new OrderStatusChangedEvent(order.id),
+      new OrderStatusChangedEvent(order.id, OrderStatus.CANCELLED),
     );
     return this.toOrderResponse(order);
+  }
+
+  async getOrderForMail(orderId: string): Promise<OrderForMail> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: ORDER_FOR_MAIL_SELECT,
+    });
+    if (!order) {
+      throw this.notFound('Order not found');
+    }
+    return order;
   }
 
   async restoreOrderInventory(

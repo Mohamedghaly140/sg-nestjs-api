@@ -51,7 +51,7 @@ export class OrderExpiryCron {
         });
         this.eventEmitter.emit(
           'order.status_changed',
-          new OrderStatusChangedEvent(order.id),
+          new OrderStatusChangedEvent(order.id, OrderStatus.CANCELLED),
         );
       } catch (error: unknown) {
         this.logger.error(

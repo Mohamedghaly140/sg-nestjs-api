@@ -17,6 +17,7 @@ import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
 import { CouponsModule } from './modules/coupons/coupons.module';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { HealthModule } from './modules/health/health.module';
+import { MailModule } from './modules/mail/mail.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
@@ -100,6 +101,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CouponsModule,
     ShippingModule,
     OrdersModule,
+    MailModule,
     HealthModule,
   ],
   providers: [

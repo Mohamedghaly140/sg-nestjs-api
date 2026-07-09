@@ -235,7 +235,7 @@ Order visibility: users see orders where `userId = me`. Guests can fetch a singl
 | `order.created` (guest) | `anonEmail` | Confirmation + **claim link** (`guestToken`, 30-day validity note) |
 | `order.paid` | purchaser | Payment receipt |
 | `order.status_changed` → SHIPPED / DELIVERED / CANCELLED / REFUNDED | purchaser | Status update |
-| MANAGER "reset password" on a customer | customer | Clerk-initiated reset email (via Clerk API, not Resend) |
+| MANAGER "reset password" on a customer | customer | First-party password-reset notice via Resend |
 
 Email sending is **post-commit and non-blocking**: failures are logged + retried (3 attempts, exponential backoff); they never fail the originating request.
 

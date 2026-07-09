@@ -358,7 +358,10 @@ describe('OrdersService', () => {
     );
     expect(eventEmitter.emit).toHaveBeenCalledWith(
       'order.status_changed',
-      expect.objectContaining({ orderId: 'order_1' }),
+      expect.objectContaining({
+        orderId: 'order_1',
+        status: OrderStatus.CANCELLED,
+      }),
     );
   });
 });

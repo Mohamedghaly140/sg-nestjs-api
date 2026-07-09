@@ -6,6 +6,10 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/common/utils/configure-app';
 import { CLERK_CLIENT } from '../../src/modules/auth/clerk-client.provider';
 import { ClerkTokenVerifierService } from '../../src/modules/auth/services/clerk-token-verifier.service';
+import {
+  RESEND_CLIENT,
+  type ResendClient,
+} from '../../src/modules/mail/resend-client.provider';
 import { CLOUDINARY_CLIENT } from '../../src/modules/uploads/cloudinary-client.provider';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import {
@@ -20,7 +24,13 @@ export interface CatalogTestApp {
   cloudinary: ReturnType<typeof createFakeCloudinaryClient>;
 }
 
-export async function createCatalogTestApp(): Promise<CatalogTestApp> {
+export interface CatalogTestAppOptions {
+  resendClient?: ResendClient | null;
+}
+
+export async function createCatalogTestApp(
+  options: CatalogTestAppOptions = {},
+): Promise<CatalogTestApp> {
   const cloudinary = createFakeCloudinaryClient();
 
   const module = await Test.createTestingModule({ imports: [AppModule] })
@@ -30,6 +40,8 @@ export async function createCatalogTestApp(): Promise<CatalogTestApp> {
     .useValue(createFakeClerkClient())
     .overrideProvider(CLOUDINARY_CLIENT)
     .useValue(cloudinary)
+    .overrideProvider(RESEND_CLIENT)
+    .useValue(options.resendClient ?? null)
     .compile();
 
   const app = module.createNestApplication<INestApplication<App>>();

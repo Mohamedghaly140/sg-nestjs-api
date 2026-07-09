@@ -202,7 +202,7 @@ export class AdminOrdersService {
     );
     this.eventEmitter.emit(
       'order.status_changed',
-      new OrderStatusChangedEvent(order.id),
+      new OrderStatusChangedEvent(order.id, dto.status),
     );
     return this.toOrderResponse(order);
   }
