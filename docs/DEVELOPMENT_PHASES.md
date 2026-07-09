@@ -6,7 +6,7 @@
 
 **Legend:** ⬜ Not Started · 🟨 In Progress · ✅ Completed
 
-**Current state:** **Phases 0–5 are complete.** Active phase: **Phase 6** (Checkout & Orders).
+**Current state:** **Phases 0–6 are complete.** Active phase: **Phase 7** (Payments — Geidea).
 
 **Global Definition of Done (applies to every phase):** code passes lint + typecheck; unit tests for services + e2e happy-path per endpoint; all endpoints follow the envelope + API_SPECIFICATION.md template; every new/changed endpoint and its DTOs carry `@nestjs/swagger` decorators (applied via the `nestjs-swagger` skill) and render correctly in the Swagger UI at `/api/docs`; docs updated (API/DATABASE/CHANGELOG/this file); no TODOs referencing undecided business logic (ask instead).
 
@@ -141,20 +141,21 @@
 
 ---
 
-## Phase 6 — Checkout & Orders ⬜
+## Phase 6 — Checkout & Orders ✅
 
 **Purpose:** the core money path — registered + anonymous checkout, atomic stock, order lifecycle, guest claiming ([ADR-0003](./ADR-0003-stock-reservation-strategy.md)).
 **Dependencies:** Phases 4 & 5. **DB:** `orders`, `orderItems`, sequence.
 
 **Features / tasks**
-- [ ] Checkout transaction (FEATURES.md §6): cart load → line validation → shipping fee → coupon consume → **conditional stock decrement** → order + items + humanOrderId → cart clear
-- [ ] Anonymous checkout variant (anon fields DTO, guestToken generation)
-- [ ] `order.created` event (email hookup lands in Phase 8; event emitted now)
-- [ ] My orders: list + detail; guest order fetch by token
-- [ ] User self-cancel (PENDING + unpaid)
-- [ ] Admin orders (MANAGER+): list/filter (merged search over humanOrderId/customer name/email/phone; `customerName` + `itemsCount` in rows), full detail (user/address/anon fields/coupon/payment refs), status transitions with full state machine + optional `notes` + stock/coupon restoration, one-way mark CASH paid
-- [ ] Guest claiming endpoint (auth required; sets userId + audit; nulls token)
-- [ ] Cron: expire unpaid CARD orders (60 min) with restoration; guest-token cleanup
+- [x] Addresses prerequisite implemented: owner-scoped `/addresses` CRUD/default management required before checkout can validate registered shipping addresses
+- [x] Checkout transaction (FEATURES.md §6): cart load → line validation → shipping fee → coupon validation → **conditional stock decrement** → order + items + humanOrderId → coupon consume → cart clear
+- [x] Anonymous checkout variant (anon fields DTO, guestToken generation)
+- [x] `order.created` event (email hookup lands in Phase 8; event emitted now)
+- [x] My orders: list + detail; guest order fetch by token
+- [x] User self-cancel (PENDING + unpaid)
+- [x] Admin orders (MANAGER+): list/filter (merged search over humanOrderId/customer name/email/phone; `customerName` + `itemsCount` in rows), full detail (user/address/anon fields/coupon/payment refs), status transitions with full state machine + optional `notes` + stock/coupon restoration, one-way mark CASH paid
+- [x] Guest claiming endpoint (auth required; sets userId + audit; nulls token)
+- [x] Cron: expire unpaid CARD orders (60 min) with restoration; guest-token cleanup
 
 **Acceptance criteria (must-pass concurrency test):** two parallel checkouts for the same last unit → exactly one 201, one 409 `INSUFFICIENT_STOCK`, stock ends at 0, no money implications for the loser. Full transition matrix e2e-tested incl. restoration side effects; totals verified against seeded fixtures to the piaster.
 
@@ -222,7 +223,7 @@
 - [x] Phase 3 — Reviews & Wishlist
 - [x] Phase 4 — Cart
 - [x] Phase 5 — Coupons & Shipping
-- [ ] Phase 6 — Checkout & Orders
+- [x] Phase 6 — Checkout & Orders
 - [ ] Phase 7 — Payments (Geidea)
 - [ ] Phase 8 — Emails (Resend)
 - [ ] Phase 9 — Notifications

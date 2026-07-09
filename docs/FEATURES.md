@@ -153,6 +153,8 @@ Edge cases: guest order claimed by a user → usage row keeps `anonEmail` (no tr
 7. **Clear the cart** (delete anonymous cart / empty user cart).
 8. **After commit:** emit `order.created` → Resend confirmation email (guest email includes the claim link `https://<storefront>/orders/claim?token=…`); CARD orders proceed to payment session (§7).
 
+Implementation note: because `CouponUsage.orderId` is a required FK, checkout validates the coupon before stock reservation, creates the order row after reservation, then consumes the coupon immediately after order creation inside the same database transaction. `CouponsService.consumeCoupon` re-validates under a coupon row lock at that point, so the atomicity and race guarantees are unchanged.
+
 ### Payment method semantics
 
 | | CASH (on delivery) | CARD (Geidea) |

@@ -447,7 +447,8 @@ Errors: as POST /orders + 422 when no anonymous cart
 Notes: generates `guestToken` (30d) and emails the claim link to `contact.email`; coupon per-user limit keyed on email.
 
 ### GET /orders
-My orders (claimed included) · Auth: User · Query: `page, limit, status?` · Success (200): summaries + meta
+My orders (claimed included) · Auth: User · Query: `page, limit, status?`
+Success (200): `data: [{ id, humanOrderId, status, paymentMethod, isPaid, totalOrderPrice, shippingFees, discountApplied, createdAt, itemsCount }]`, pagination meta
 
 ### GET /orders/:id
 My order detail · Auth: User (owner) · Errors: 404 when not mine
@@ -488,11 +489,11 @@ Success (200): full order row + `user` (id/name/email/phone, null for guest) + `
 Transition status per the state machine · Auth: Manager+
 Body: `{ status, notes? }` · Success (200): order
 Errors: 409 `INVALID_STATUS_TRANSITION` (incl. same-status requests)
-Notes: side effects (stock/coupon restore, `sold` decrement on REFUNDED, `isDelivered/deliveredAt`) per [FEATURES.md §6](./FEATURES.md#6-orders--checkout); `notes`, when present, overwrites the order's notes; emits `order.status_changed`; audit-logged.
+Notes: side effects (stock/coupon restore, `sold` decrement on REFUNDED, `isDelivered/deliveredAt`) per [FEATURES.md §6](./FEATURES.md#6-orders--checkout); CASH orders must be marked paid before `SHIPPED → DELIVERED` or the transition returns 409 `INVALID_STATUS_TRANSITION`; `notes`, when present, overwrites the order's notes; emits `order.status_changed`; audit-logged.
 
 ### PATCH /admin/orders/:id/mark-paid
 Mark a CASH order paid · Auth: Manager+
-Success (200): order (`isPaid`, `paidAt`) · Errors: 409 when CARD (webhook-only) or already paid
+Success (200): order (`isPaid`, `paidAt`) · Errors: 409 when CARD (webhook-only), already paid, or CANCELLED/REFUNDED
 Notes: one-way — there is no un-mark; corrections go through support/`verify-payment`. Increments `sold`; emits `order.paid`; audit-logged.
 
 ### POST /admin/orders/:id/verify-payment

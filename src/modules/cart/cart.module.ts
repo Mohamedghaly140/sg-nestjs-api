@@ -8,8 +8,8 @@ import { CartIdentityMiddleware } from './middleware/cart-identity.middleware';
 @Module({
   imports: [AuthModule],
   controllers: [CartController],
-  providers: [CartService, CartCleanupCron],
-  exports: [CartService],
+  providers: [CartService, CartCleanupCron, CartIdentityMiddleware],
+  exports: [CartService, CartIdentityMiddleware],
 })
 export class CartModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

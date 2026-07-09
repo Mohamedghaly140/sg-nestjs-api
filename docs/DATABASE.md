@@ -150,6 +150,8 @@ Key fields:
 
 `geideaSessionId` and `geideaOrderId` are nullable unique identifiers used only for CARD orders; they replace the original Stripe-specific field. `OrderItem.price` = snapshot of `priceAfterDiscount` **at order time** (authoritative for the order total forever). `product` is `Restrict` (order history protects products from deletion).
 
+Phase 6 checkout/order application work required no Prisma schema change: Migration 001 already includes `Order`, `OrderItem`, `order_number_seq`, Geidea references, coupon usage tracking, and shipping zones.
+
 ### 3.13 Notification (`notifications`)
 
 In-app notifications. `type` string (`ORDER_SHIPPED`, `ORDER_DELIVERED`, `ORDER_PAID`, `PROMO`, …), `metadata Json?` for deep-link payloads (e.g. `{ orderId }`). `@@index([userId, read])` supports the unread-badge query. Created by event listeners on order lifecycle events; FCM push mirrors these later.

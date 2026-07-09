@@ -56,7 +56,14 @@ const CART_WITH_ITEMS_SELECT = {
       price: true,
       product: {
         select: {
+          id: true,
+          name: true,
+          slug: true,
+          imageUrl: true,
           quantity: true,
+          status: true,
+          colors: true,
+          sizes: true,
           priceAfterDiscount: true,
         },
       },
@@ -68,6 +75,8 @@ type SelectedCart = Prisma.CartGetPayload<{ select: typeof CART_SELECT }>;
 type CartWithItems = Prisma.CartGetPayload<{
   select: typeof CART_WITH_ITEMS_SELECT;
 }>;
+
+export type CartForCheckout = CartWithItems;
 
 interface CartOperationResult {
   cart: CartResponseDto;
@@ -276,6 +285,39 @@ export class CartService {
       await tx.cart.delete({ where: { id: cart.id } });
       return { clearAnonCookie: true };
     });
+  }
+
+  async loadCartForCheckout(
+    tx: Prisma.TransactionClient,
+    identity: CartServiceIdentity,
+  ): Promise<CartForCheckout | null> {
+    const cart = await this.findMutableCartByIdentity(tx, identity);
+    if (!cart) {
+      return null;
+    }
+
+    // Lock the cart row before checkout reads its items, then re-read under
+    // the lock: a second concurrent checkout for the same cart (double-click,
+    // client retry) blocks here until the first commits and clears the cart,
+    // then observes the now-empty/deleted cart instead of double-submitting
+    // an order from the same line items.
+    await this.lockCart(tx, cart.id);
+    return this.findMutableCartByIdentity(tx, identity);
+  }
+
+  async clearCartInTx(
+    tx: Prisma.TransactionClient,
+    cart: { id: string; userId: string | null },
+  ): Promise<void> {
+    await this.lockCart(tx, cart.id);
+
+    if (cart.userId) {
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+      await this.recomputeTotals(tx, cart.id);
+      return;
+    }
+
+    await tx.cart.delete({ where: { id: cart.id } });
   }
 
   private async getOrCreateCart(

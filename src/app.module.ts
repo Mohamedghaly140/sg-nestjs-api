@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'node:crypto';
@@ -9,12 +10,14 @@ import { CommonModule } from './common/common.module';
 import configuration from './config/configuration';
 import { validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { AddressesModule } from './modules/addresses/addresses.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
 import { CouponsModule } from './modules/coupons/coupons.module';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { HealthModule } from './modules/health/health.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ShippingModule } from './modules/shipping/shipping.module';
@@ -82,9 +85,11 @@ import { PrismaModule } from './prisma/prisma.module';
       },
     ]),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     CommonModule,
     AuthModule,
+    AddressesModule,
     UsersModule,
     UploadsModule,
     CategoriesModule,
@@ -94,6 +99,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CartModule,
     CouponsModule,
     ShippingModule,
+    OrdersModule,
     HealthModule,
   ],
   providers: [
