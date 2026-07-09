@@ -2,6 +2,20 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-09 — Phase 10 Analytics · Paid-revenue reconciliation fix
+
+- Fixed a Codex adversarial-review finding (validated by `fable-advisor`): revenue and units-sold aggregates in `AnalyticsService`/`DashboardService` were filtering only by order status (excluding `CANCELLED`/`REFUNDED`), so unpaid, non-terminal orders (e.g. a CASH order still `PENDING`/`PROCESSING`/`SHIPPED`, or a CARD order before the not-yet-built Geidea webhook confirms it) were counted as revenue. `Product.sold` only increments on the `isPaid` flip, so figures didn't reconcile as documented.
+- Added `isPaid = true` (alongside the existing `CANCELLED`/`REFUNDED` status exclusion — still required since refunded orders remain `isPaid = true`) to every revenue/sold query: `totalRevenue`, `revenueOverTime`, `totalUnitsSold`, `topProducts`, `revenueByCategory`, `topSpenders.totalSpent`, `geography.revenue`, and the dashboard's revenue windows/`revenueByDay`/`topProducts`. Order/redemption **counts** and discount totals remain payment-status-agnostic (unchanged, per the documented asymmetry).
+- Fixed `avgOrderValue` (both the sales tab and the dashboard KPI) to divide paid revenue by the **paid** order count instead of the all-statuses order count, so the ratio stays meaningful now that the numerator is paid-only.
+- Updated `test/admin-analytics.e2e-spec.ts` fixtures to set explicit `isPaid` per order (previously all defaulted to `false`, which is why the bug's incorrect revenue numbers matched the old assertions) and added a regression case: an unpaid, non-cancelled/refunded CARD order that must contribute zero revenue despite being in range.
+- Docs touched: `docs/FEATURES.md` §11, `docs/API_SPECIFICATION.md` §14, `docs/api/admin/08-analytics.md`, `docs/testing/phase-10-analytics.tdd.md`, and this changelog. No Prisma schema/migration change. `pnpm lint`, `pnpm test` (215 passed), `pnpm build`, and `pnpm test:e2e -- admin-analytics.e2e-spec.ts` (7 passed) all green against the real dev DB.
+
+## 2026-07-09 — Phase 10 Analytics · Dashboard and analytics endpoints
+
+- Added `AnalyticsModule` with ADMIN-only dashboard metrics plus sales, products, customers, coupons, and geography analytics endpoints under `/admin/dashboard` and `/admin/analytics`.
+- Implemented shared range/grouping resolution, a single reused cancelled/refunded revenue-exclusion constant, parameterized `Prisma.sql` raw queries for `DATE_TRUNC`/COALESCE aggregations, and explicit plain-number coercion for raw bigint/Decimal results.
+- Added unit coverage for date grouping boundaries and JSON-safe numeric coercion, plus e2e coverage for exact status-filter reconciliation and MANAGER/USER 403 behavior. Docs touched: `DEVELOPMENT_PHASES.md`, `docs/api/admin/08-analytics.md`, `docs/testing/phase-10-analytics.tdd.md`, and this changelog. No Prisma schema, migration, database docs, or ADR change.
+
 ## 2026-07-09 — Phase 8 Emails · Shared styled layout
 
 - Added a reusable `renderMailLayout()` email shell with SG Couture brand constants, table-based inline-CSS HTML, hidden preheader text, mobile-only media tweaks, and automatic HTML escaping inside block renderers.

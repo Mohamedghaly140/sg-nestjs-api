@@ -522,7 +522,7 @@ Body: `{ title, body, metadata? }` · Success (202): `{ "queued": true }` · Not
 
 ## 14. Dashboard & Analytics (all Auth: **Admin** — MANAGER → 403 by design)
 
-All values in this section are plain JSON **numbers** (chart/KPI inputs — see §0). **Status filter rule:** monetary sums and product-level sales aggregates (revenue, units sold) exclude `CANCELLED`/`REFUNDED` orders so all revenue figures reconcile with each other; order/redemption **counts** and discount totals include all statuses (match this asymmetry). Endpoint-specific exceptions are noted inline.
+All values in this section are plain JSON **numbers** (chart/KPI inputs — see §0). **Status filter rule:** monetary sums and product-level sales aggregates (revenue, units sold) require `isPaid = true` AND exclude `CANCELLED`/`REFUNDED` orders — a `PENDING`/`PROCESSING`/`SHIPPED` order (unpaid CASH, or CARD before Geidea confirms) is not counted until it's paid, so these figures reconcile with `Product.sold` (which only increments on the same `isPaid` flip); order/redemption **counts** and discount totals include all statuses regardless of payment (match this asymmetry). Endpoint-specific exceptions are noted inline.
 
 ### GET /admin/dashboard/metrics
 Single aggregate call for the dashboard home (one round trip) · Auth: Admin
@@ -533,14 +533,14 @@ Success (200):
   "revenue":       { "current": 45200.5, "previous": 39100 },
   "orders":        { "current": 88, "previous": 73 },
   "newCustomers":  { "current": 25, "previous": 19 },          // role USER, created in window
-  "avgOrderValue": { "current": 513.6, "previous": 535.6 },    // revenue / orders, 0 when no orders
+  "avgOrderValue": { "current": 513.6, "previous": 535.6 },    // paid revenue / paid order count, 0 when no paid orders
   "pendingOrders": 7,                                           // status = PENDING, all time
   "lowStockCount": 4,                                           // quantity < 10 AND status = ACTIVE
   "activeCoupons": 3,                                           // isActive AND expire > now AND not exhausted
   "ordersByStatus": [{ "status": "PENDING", "count": 7 }],      // all time
   "revenueByDay":  [{ "date": "2026-06-08", "revenue": 1240 }], // trailing 30 days, ISO dates, ascending
   "recentOrders":  [{ "id", "humanOrderId", "customerName", "status", "paymentMethod", "totalOrderPrice", "createdAt" }], // 10 most recent
-  "topProducts":   [{ "id", "name", "imageUrl", "categoryName", "revenue", "units" }], // top 5 by all-time item revenue (qty × price snapshot), excl. CANCELLED/REFUNDED orders
+  "topProducts":   [{ "id", "name", "imageUrl", "categoryName", "revenue", "units" }], // top 5 by all-time item revenue (qty × price snapshot), isPaid = true, excl. CANCELLED/REFUNDED orders
   "lowStockProducts": [{ "id", "name", "quantity", "categoryName", "status" }]         // quantity < 10 AND ACTIVE, quantity asc, max 20
 }
 ```
@@ -551,23 +551,23 @@ Query: `from?, to?` (ISO `YYYY-MM-DD`; `end = endOfDay(to ?? now)`, `start = sta
 Time-bucket grouping: span ≤ 60 days → `day`; ≤ 180 days → `week`; else `month` (`DATE_TRUNC`); buckets carry ISO `date` strings and the chosen `grouping` is echoed in the response — the client formats labels.
 
 ### GET /admin/analytics/sales
-Success (200): `{ "totalRevenue", "totalOrders", "avgOrderValue", "totalDiscountApplied" (all statuses), "grouping", "revenueOverTime": [{ "date", "revenue" }], "ordersByStatus": [{ "status", "count" }], "paymentMethodSplit": [{ "method", "count" }] }` — all in range
+Success (200): `{ "totalRevenue" (paid only), "totalOrders" (all statuses), "avgOrderValue" (paid revenue / paid order count in range, 0 when none), "totalDiscountApplied" (all statuses), "grouping", "revenueOverTime": [{ "date", "revenue" }] (paid only), "ordersByStatus": [{ "status", "count" }] (all statuses), "paymentMethodSplit": [{ "method", "count" }] (all statuses) }` — all in range
 Swagger: `Get sales analytics` · `@ApiResponse` 200 · query/response DTOs documented
 
 ### GET /admin/analytics/products
-Success (200): `{ "totalUnitsSold" (order items in range), "activeProductsCount" (not range-bound), "outOfStockCount" (quantity = 0 AND ACTIVE, not range-bound), "topProducts": [{ "id", "name", "categoryName", "sold", "revenue" }] (top 10 by units in range; LEFT JOIN — zero-sale products may appear), "revenueByCategory": [{ "name", "revenue" }] (all categories, desc) }`
-Notes: per-product/category revenue = `SUM(quantity × price snapshot)` over order items whose order is in range. All units/revenue aggregates here exclude `CANCELLED`/`REFUNDED` orders (§14 status filter rule — also matches `Product.sold`, which is decremented on refund).
+Success (200): `{ "totalUnitsSold" (paid order items in range), "activeProductsCount" (not range-bound), "outOfStockCount" (quantity = 0 AND ACTIVE, not range-bound), "topProducts": [{ "id", "name", "categoryName", "sold", "revenue" }] (top 10 by paid units in range; LEFT JOIN — zero-sale products may appear), "revenueByCategory": [{ "name", "revenue" }] (all categories, desc) }`
+Notes: per-product/category revenue = `SUM(quantity × price snapshot)` over paid order items whose order is in range. All units/revenue aggregates here require `isPaid = true` AND exclude `CANCELLED`/`REFUNDED` orders (§14 status filter rule — also matches `Product.sold`, which only increments on the same `isPaid` flip and is decremented on refund).
 Swagger: `Get product analytics` · `@ApiResponse` 200 · query/response DTOs documented
 
 ### GET /admin/analytics/customers
-Success (200): `{ "totalCustomers" (role USER, all time), "newThisPeriod" (created in range), "activeThisPeriod" (≥ 1 order in range), "grouping", "newCustomersOverTime": [{ "date", "count" }], "topSpenders": [{ "id", "name", "email", "ordersCount", "totalSpent" }] (top 10 by spend in range, excl. CANCELLED/REFUNDED) }`
+Success (200): `{ "totalCustomers" (role USER, all time), "newThisPeriod" (created in range), "activeThisPeriod" (≥ 1 order in range, any status), "grouping", "newCustomersOverTime": [{ "date", "count" }], "topSpenders": [{ "id", "name", "email", "ordersCount", "totalSpent" }] (top 10 by paid spend in range, isPaid = true, excl. CANCELLED/REFUNDED; `ordersCount` is all statuses) }`
 Swagger: `Get customer analytics` · `@ApiResponse` 200 · query/response DTOs documented
 
 ### GET /admin/analytics/coupons
-Success (200): `{ "totalCoupons" (all time), "totalRedemptions" (orders with couponId in range, any status), "totalDiscountGiven" (sum discountApplied over those orders), "coupons": [{ "id", "name", "discountPct", "usedCount" (lifetime), "maxUsage", "expire", "periodRedemptions", "totalDiscountGiven" }] (EVERY coupon — LEFT JOIN — ordered by totalDiscountGiven desc) }`
+Success (200): `{ "totalCoupons" (all time), "totalRedemptions" (orders with couponId in range, any status), "totalDiscountGiven" (sum discountApplied over those orders, any status), "coupons": [{ "id", "name", "discountPct", "usedCount" (lifetime), "maxUsage", "expire", "periodRedemptions", "totalDiscountGiven" }] (EVERY coupon — LEFT JOIN — ordered by totalDiscountGiven desc; redemption counts/discount totals are payment-status-agnostic, matching the §14 counts asymmetry) }`
 Swagger: `Get coupon analytics` · `@ApiResponse` 200 · query/response DTOs documented
 
 ### GET /admin/analytics/geography
 Success (200): `{ "rows": [{ "governorate", "orderCount", "revenue" }] }` ordered by orderCount desc
-Notes: governorate = `COALESCE(shippingAddress.governorate, order.anonGovernorate)` — registered + guest orders merged per governorate; orders where both are null excluded; range on `order.createdAt`. Per the §14 status filter rule, `orderCount` includes all statuses while `revenue` excludes `CANCELLED`/`REFUNDED`.
+Notes: governorate = `COALESCE(shippingAddress.governorate, order.anonGovernorate)` — registered + guest orders merged per governorate; orders where both are null excluded; range on `order.createdAt`. Per the §14 status filter rule, `orderCount` includes all statuses while `revenue` requires `isPaid = true` AND excludes `CANCELLED`/`REFUNDED`.
 Swagger: `Get geography analytics` · `@ApiResponse` 200 · query/response DTOs documented

@@ -11,6 +11,7 @@ import configuration from './config/configuration';
 import { validate } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClerkAuthGuard } from './modules/auth/guards/clerk-auth.guard';
@@ -101,6 +102,7 @@ import { PrismaModule } from './prisma/prisma.module';
     CouponsModule,
     ShippingModule,
     OrdersModule,
+    AnalyticsModule,
     MailModule,
     HealthModule,
   ],

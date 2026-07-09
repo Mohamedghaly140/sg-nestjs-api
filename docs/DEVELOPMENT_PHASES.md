@@ -206,9 +206,11 @@
 
 ---
 
-## Phase 10 — Analytics & Dashboard ⬜ · Phase 11 — Hardening & Launch ⬜
+## Phase 10 — Analytics & Dashboard ✅ · Phase 11 — Hardening & Launch ⬜
 
 **Phase 10 (ADMIN):** `GET /admin/dashboard/metrics` (single aggregate call: month-over-month KPIs, pending/low-stock/active-coupon counts, orders-by-status, trailing-30-day revenue series, recent orders, top products) + the five analytics endpoints (`/admin/analytics/sales|products|customers|coupons|geography`) with shared `from`/`to` range and day/week/month bucket grouping — see [API_SPECIFICATION.md §14](./API_SPECIFICATION.md#14-dashboard--analytics-all-auth-admin--manager--403-by-design). Acceptance: numbers reconcile with seeded fixtures (revenue excludes CANCELLED/REFUNDED, counts don't); MANAGER gets 403 on all of them.
+
+**Status note:** Phase 9 (Notifications) was explicitly skipped per user instruction while implementing Phase 10; Phase 10 is read-only analytics over existing order/product/user/coupon/address data and has no dependency on notifications.
 
 **Phase 11:** stricter per-route throttles (checkout, coupon validate, webhooks); security review pass ([CODING_STANDARDS.md §Security](./CODING_STANDARDS.md#security)); load test on checkout concurrency; coverage targets met (services ≥ 80%, money paths ≥ 95%); deployment config + runbook; final docs audit (incl. OpenAPI spec complete and accurate for all endpoints). Acceptance: launch checklist signed off.
 
@@ -229,7 +231,7 @@
 - [ ] Phase 7 — Payments (Geidea)
 - [x] Phase 8 — Emails (Resend)
 - [ ] Phase 9 — Notifications
-- [ ] Phase 10 — Analytics
+- [x] Phase 10 — Analytics
 - [ ] Phase 11 — Hardening & Launch
 
 **Future (explicitly out of scope now):** Bosta, FCM push, automated Geidea refunds, verified-purchase reviews, address snapshots, SKU variants, Redis, AR/EN content, invoice PDFs, search engine. See [FEATURES.md §12](./FEATURES.md#12-future-enhancements-out-of-current-scope).
