@@ -5,3 +5,7 @@ url = "https://mcp.clerk.com/mcp"
 [mcp_servers.prisma]
 type = "http"
 url = "https://mcp.prisma.io/mcp"
+
+[mcp_servers.railway]
+type = "http"
+url = "https://mcp.railway.com"
