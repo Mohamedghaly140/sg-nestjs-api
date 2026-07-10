@@ -3,6 +3,7 @@ import {
   Controller,
   Headers,
   HttpCode,
+  Logger,
   Post,
   Req,
   UnauthorizedException,
@@ -25,6 +26,8 @@ import { ClerkSyncService } from '../services/clerk-sync.service';
 @SkipThrottle()
 @Controller('webhooks/clerk')
 export class ClerkWebhookController {
+  private readonly logger = new Logger(ClerkWebhookController.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly clerkSync: ClerkSyncService,
@@ -51,7 +54,22 @@ export class ClerkWebhookController {
 
     try {
       if (!request.rawBody || !svixId || !svixTimestamp || !svixSignature) {
-        throw new Error('Missing webhook signature data');
+        const missingSignatureData = [
+          !request.rawBody ? 'rawBody' : undefined,
+          !svixId ? 'svixId' : undefined,
+          !svixTimestamp ? 'svixTimestamp' : undefined,
+          !svixSignature ? 'svixSignature' : undefined,
+        ].filter((field): field is string => field !== undefined);
+
+        this.logger.warn(
+          { missingSignatureData },
+          'Clerk webhook rejected: missing signature data',
+        );
+
+        throw new UnauthorizedException({
+          code: ERROR_CODES.INVALID_WEBHOOK_SIGNATURE,
+          message: 'Invalid webhook signature',
+        });
       }
 
       event = new Webhook(
@@ -61,12 +79,26 @@ export class ClerkWebhookController {
         'svix-timestamp': svixTimestamp,
         'svix-signature': svixSignature,
       }) as WebhookEvent;
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      this.logger.warn(
+        { err: error, errorMessage: this.getErrorMessage(error) },
+        'Clerk webhook rejected: signature verification failed',
+      );
+
       throw new UnauthorizedException({
         code: ERROR_CODES.INVALID_WEBHOOK_SIGNATURE,
         message: 'Invalid webhook signature',
       });
     }
+
+    this.logger.log(
+      { eventType: event.type, clerkUserId: event.data.id },
+      'Clerk webhook verified',
+    );
 
     switch (event.type) {
       case 'user.created':
@@ -81,5 +113,9 @@ export class ClerkWebhookController {
     }
 
     return { received: true };
+  }
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }

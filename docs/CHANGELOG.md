@@ -2,6 +2,12 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-10 — Phase 11 Hardening · Clerk webhook diagnostic logging
+
+- Added diagnostic logging to `ClerkWebhookController`: signature precondition failures now warn with the exact missing raw body/header fields, Svix verification failures now warn separately with the underlying error message, and verified Clerk deliveries now log the event type plus Clerk user id before dispatch.
+- Behavior is unchanged: failed verification still returns the same 401 `INVALID_WEBHOOK_SIGNATURE` envelope, and `ClerkSyncService` processing remains untouched.
+- Prompted by an incident where Clerk Dashboard was configured with a stale ngrok webhook URL and a missing `/api/v1` prefix, making failed or absent deliveries invisible from backend logs. Docs touched: this changelog only.
+
 ## 2026-07-10 — Phase 11 Hardening · Final docs audit (OpenAPI/spec vs code)
 
 - Ran the full endpoint audit (`api-documenter` agent): all 49 controller routes across 24 controllers verified against `docs/API_SPECIFICATION.md` for method/path/auth/status-code/error-code accuracy, plus Swagger decorator coverage (`@ApiTags`/`@ApiOperation`/`@ApiResponse` present on all controllers; DTOs carry `@ApiProperty`, with `PartialType` correctly inheriting metadata on update DTOs). No code-side gaps found — three doc-side fixes applied:

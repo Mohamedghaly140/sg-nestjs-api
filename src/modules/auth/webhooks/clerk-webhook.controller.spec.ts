@@ -29,11 +29,14 @@ describe('ClerkWebhookController', () => {
   }
 
   it('rejects an invalid signature', async () => {
-    jest.mocked(Webhook).mockImplementationOnce(() => ({
-      verify: () => {
-        throw new Error('bad');
-      },
-    }));
+    jest.mocked(Webhook).mockImplementationOnce(
+      () =>
+        ({
+          verify: () => {
+            throw new Error('bad');
+          },
+        }) as unknown as Webhook,
+    );
     await expect(
       controller.handle(request(), 'id', 'timestamp', 'signature'),
     ).rejects.toMatchObject({
@@ -44,9 +47,12 @@ describe('ClerkWebhookController', () => {
   it.each(['user.created', 'user.updated'] as const)(
     'dispatches %s to upsert',
     async (type) => {
-      jest.mocked(Webhook).mockImplementationOnce(() => ({
-        verify: () => ({ type, data: { id: 'user_1' } }),
-      }));
+      jest.mocked(Webhook).mockImplementationOnce(
+        () =>
+          ({
+            verify: () => ({ type, data: { id: 'user_1' } }),
+          }) as unknown as Webhook,
+      );
       await expect(
         controller.handle(request(), 'id', 'timestamp', 'signature'),
       ).resolves.toEqual({ received: true });
@@ -57,15 +63,21 @@ describe('ClerkWebhookController', () => {
   it('dispatches deletion and acknowledges unknown events', async () => {
     jest
       .mocked(Webhook)
-      .mockImplementationOnce(() => ({
-        verify: () => ({
-          type: 'user.deleted',
-          data: { id: 'user_1' },
-        }),
-      }))
-      .mockImplementationOnce(() => ({
-        verify: () => ({ type: 'session.created', data: {} }),
-      }));
+      .mockImplementationOnce(
+        () =>
+          ({
+            verify: () => ({
+              type: 'user.deleted',
+              data: { id: 'user_1' },
+            }),
+          }) as unknown as Webhook,
+      )
+      .mockImplementationOnce(
+        () =>
+          ({
+            verify: () => ({ type: 'session.created', data: {} }),
+          }) as unknown as Webhook,
+      );
 
     await controller.handle(request(), 'id', 'timestamp', 'signature');
     expect(sync.deleteFromWebhookUser).toHaveBeenCalled();
