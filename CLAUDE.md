@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **SG Couture backend**: a standalone NestJS + PostgreSQL + Prisma REST API serving the SG Couture e-commerce storefront (web + future React Native mobile app) and admin dashboard.
 
-**Current state:** Phases 0–2 (`docs/DEVELOPMENT_PHASES.md`) are complete. Active phase: **Phase 3 — Reviews & Wishlist**.
+**Current state (`docs/DEVELOPMENT_PHASES.md`):** Phases 0–6, 8, and 10 are complete. Phase 7 (Geidea payments) and Phase 9 (in-app notifications) are explicitly deferred/skipped per prior user instruction — CARD checkout is gated with a 422 `PAYMENT_METHOD_UNAVAILABLE` response until Phase 7 ships. Phase 11 (Hardening & Launch) is engineering-complete; only the launch-checklist sign-off remains, which needs deployment-time decisions outside this repo (hosting, production Clerk instance, `CORS_ORIGINS`, DB backups). Always re-check the phase doc before starting new work — do not assume this summary stays current.
 
 ## Engineering Approach
 
@@ -70,9 +70,15 @@ pnpm test:cov                # jest --coverage
 pnpm test:e2e                # jest -c test/jest-e2e.json (test/**/*.e2e-spec.ts)
 pnpm test -- error-codes     # run a single unit test file by name pattern
 pnpm test -- -t "test name"  # run tests matching a name
+pnpm test:load               # autocannon-based checkout concurrency load test (test/load/checkout-load.ts)
 
-pnpm exec prisma migrate dev # apply/create a migration against DIRECT_URL, or DATABASE_URL as fallback
-pnpm exec prisma generate    # regenerate client to src/generated/prisma (schema.prisma output path)
+pnpm prisma:migrate          # alias for `prisma migrate dev` (uses DIRECT_URL, or DATABASE_URL as fallback)
+pnpm prisma:migrate:reset    # reset the dev database and reseed
+pnpm prisma:generate         # regenerate client to src/generated/prisma (schema.prisma output path)
+pnpm prisma:push             # `prisma db push` — schema prototyping without a migration
+pnpm prisma:studio           # launch Prisma Studio
+pnpm prisma:validate         # validate schema.prisma
+pnpm seed                    # `prisma db seed` -> prisma/seed.ts
 ```
 
 Jest config lives inline in `package.json` (`rootDir: src`, matches `*.spec.ts`); e2e specs live under `test/` with their own `test/jest-e2e.json` config.
