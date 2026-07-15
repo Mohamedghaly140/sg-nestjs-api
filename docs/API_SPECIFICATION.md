@@ -76,11 +76,11 @@ Swagger: `Get the current user profile` · `@ApiResponse` 200 · `MeResponseDto`
 
 ### PATCH /users/me
 Update own profile (name, phone) · Auth: User
-Request body: `{ "name?", "phone?" }` · Validation: name ≤ 120; phone EG format, unique
+Request body: `{ "firstName?", "lastName?", "phone?" }` · Validation: `firstName` and `lastName` are trimmed, non-empty when supplied, and must be supplied together; composed name ≤ 120; phone EG format, unique
 Success (200): updated profile
-Errors: 409 `DUPLICATE_RESOURCE` (phone taken)
-Notes: email/role are NOT editable here; name/phone also pushed to Clerk.
-Swagger: `Update the current user profile` · `@ApiResponse` 200/409 · `UpdateMeDto`/`MeResponseDto` documented
+Errors: 409 `DUPLICATE_RESOURCE` (phone taken); 422 `VALIDATION_ERROR` (one-sided, empty, overlong, or legacy `name` input)
+Notes: email/role are NOT editable here. When the name pair is present, the DB `name` is composed as first + single separator + last and the explicit components are pushed to Clerk without parsing. Omitting both name fields leaves the current name unchanged; phone-only updates remain valid.
+Swagger: `Update the current user profile` · `@ApiResponse` 200/409/422 · `UpdateMeDto`/`MeResponseDto` documented
 
 ### GET /admin/customers
 Customer table (`role = USER` accounts only) · Auth: Manager+
@@ -121,11 +121,11 @@ Swagger: `List users for staff management` · `@ApiResponse` 200 · query/respon
 
 ### POST /admin/users
 Create an account (staff or customer) via Clerk · Auth: **Admin**
-Request body: `{ "name", "email", "phone", "password", "role" }`
-Validation: name 2–120; email; phone EG format; password ≥ 8; role ∈ `USER | MANAGER | ADMIN`
+Request body: `{ "firstName", "lastName", "email", "phone", "password", "role" }`
+Validation: first/last required, trimmed, non-empty, composed name ≤ 120; email; phone EG format; password ≥ 8; role ∈ `USER | MANAGER | ADMIN`
 Success (201): created user `{ id, name, email, phone, role, active, createdAt }`
-Errors: 422 `VALIDATION_ERROR` carrying Clerk's rejection message (duplicate email/phone, weak/compromised password)
-Notes: Clerk `createUser` first (name split into firstName/lastName; username derived from the email local part, chars outside `[a-zA-Z0-9_.-]` → `_`; `publicMetadata.role` set), then immediate idempotent DB upsert with the Clerk-issued id (the Clerk webhook may lag or race). A DB failure after the Clerk create triggers a best-effort compensating Clerk `deleteUser` (CRITICAL-logged if that also fails — see ADR-0001). The password is never persisted by this backend. Audit-logged.
+Errors: 422 `VALIDATION_ERROR` for local DTO validation or carrying Clerk's rejection message (duplicate email/phone, weak/compromised password)
+Notes: Clerk `createUser` first (explicit `firstName`/`lastName` passed through without parsing; username derived from the email local part, chars outside `[a-zA-Z0-9_.-]` → `_`; `publicMetadata.role` set), then immediate idempotent DB upsert with the Clerk-issued id and `name` composed from the explicit components (the Clerk webhook may lag or race). A DB failure after the Clerk create triggers a best-effort compensating Clerk `deleteUser` (CRITICAL-logged if that also fails — see ADR-0001). The password is never persisted by this backend. Audit-logged.
 Swagger: `Create a user account via Clerk` · `@ApiResponse` 201/422 · request/response DTOs documented
 
 ### PATCH /admin/users/:id

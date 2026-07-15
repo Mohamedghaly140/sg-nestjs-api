@@ -99,7 +99,8 @@ describe('/admin/users (e2e)', () => {
       .post('/api/v1/admin/users')
       .set(authHeader(TEST_TOKENS.manager))
       .send({
-        name: 'Blocked User',
+        firstName: 'Blocked',
+        lastName: 'User',
         email: 'blocked.e2e@sgcouture.test',
         phone: '+201000000060',
         password: 'Str0ngPass!2026',
@@ -147,7 +148,8 @@ describe('/admin/users (e2e)', () => {
       .post('/api/v1/admin/users')
       .set(authHeader(TEST_TOKENS.admin))
       .send({
-        name: 'Created User',
+        firstName: 'Created Mary',
+        lastName: 'User',
         email: 'created-user.e2e@sgcouture.test',
         phone: '+201000000060',
         password: 'Str0ngPass!2026',
@@ -166,12 +168,18 @@ describe('/admin/users (e2e)', () => {
         emailAddress: ['created-user.e2e@sgcouture.test'],
         phoneNumber: ['+201000000060'],
         username: 'created-user.e2e',
+        firstName: 'Created Mary',
+        lastName: 'User',
         publicMetadata: { role: Role.MANAGER },
       }),
     );
     await expect(
       prisma.user.findUnique({ where: { id: createdId } }),
-    ).resolves.toMatchObject({ id: createdId, role: Role.MANAGER });
+    ).resolves.toMatchObject({
+      id: createdId,
+      name: 'Created Mary User',
+      role: Role.MANAGER,
+    });
   });
 
   it('maps Clerk create rejection to 422 without creating a DB row', async () => {
@@ -181,7 +189,8 @@ describe('/admin/users (e2e)', () => {
       .post('/api/v1/admin/users')
       .set(authHeader(TEST_TOKENS.admin))
       .send({
-        name: 'Rejected User',
+        firstName: 'Rejected',
+        lastName: 'User',
         email: 'rejected-user.e2e@sgcouture.test',
         phone: '+201000000061',
         password: 'Str0ngPass!2026',
@@ -198,6 +207,31 @@ describe('/admin/users (e2e)', () => {
     await expect(
       prisma.user.findFirst({
         where: { email: 'rejected-user.e2e@sgcouture.test' },
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it.each([
+    ['missing lastName', { firstName: 'Invalid' }],
+    ['blank lastName', { firstName: 'Invalid', lastName: '   ' }],
+    ['legacy name', { name: 'Invalid User' }],
+  ])('rejects %s before calling Clerk', async (_, name) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users')
+      .set(authHeader(TEST_TOKENS.admin))
+      .send({
+        ...name,
+        email: 'invalid-name.e2e@sgcouture.test',
+        phone: '+201000000063',
+        password: 'Str0ngPass!2026',
+        role: Role.USER,
+      })
+      .expect(422);
+
+    expect(clerk.users.createUser).not.toHaveBeenCalled();
+    await expect(
+      prisma.user.findFirst({
+        where: { email: 'invalid-name.e2e@sgcouture.test' },
       }),
     ).resolves.toBeNull();
   });

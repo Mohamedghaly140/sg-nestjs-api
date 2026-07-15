@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ClerkSyncService } from '../auth/services/clerk-sync.service';
+import { composeClerkName } from '../auth/utils/compose-clerk-name';
 import { UpdateMeDto } from './dto/update-me.dto';
 
 const ME_SELECT = {
@@ -28,12 +29,31 @@ export class UsersService {
   }
 
   async updateMe(userId: string, dto: UpdateMeDto) {
+    const hasNameUpdate =
+      dto.firstName !== undefined && dto.lastName !== undefined;
+    const data: Prisma.UserUpdateInput = {
+      ...(hasNameUpdate
+        ? { name: composeClerkName(dto.firstName, dto.lastName) }
+        : {}),
+      ...(dto.phone === undefined ? {} : { phone: dto.phone }),
+    };
+    const clerkUpdate =
+      dto.firstName !== undefined && dto.lastName !== undefined
+        ? {
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            ...(dto.phone === undefined ? {} : { phone: dto.phone }),
+          }
+        : dto.phone === undefined
+          ? {}
+          : { phone: dto.phone };
+
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: dto,
+      data,
       select: ME_SELECT,
     });
-    await this.clerkSync.pushProfileToClerk(userId, dto);
+    await this.clerkSync.pushProfileToClerk(userId, clerkUpdate);
     return user;
   }
 }

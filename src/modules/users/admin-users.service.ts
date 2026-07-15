@@ -5,6 +5,7 @@ import { buildPaginationMeta } from '../../common/utils/build-pagination-meta';
 import { Prisma, Role } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CLERK_CLIENT, type ClerkClient } from '../auth/clerk-client.provider';
+import { composeClerkName } from '../auth/utils/compose-clerk-name';
 import { AdminUserResponseDto } from './dto/admin-user-response.dto';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 import { QueryAdminUsersDto } from './dto/query-admin-users.dto';
@@ -63,7 +64,7 @@ export class AdminUsersService {
     actingId: string,
     dto: CreateAdminUserDto,
   ): Promise<AdminUserResponseDto> {
-    const { firstName, lastName } = this.splitName(dto.name);
+    const name = composeClerkName(dto.firstName, dto.lastName);
     let clerkUserId: string;
 
     try {
@@ -72,8 +73,8 @@ export class AdminUsersService {
         phoneNumber: [dto.phone],
         username: this.deriveUsername(dto.email),
         password: dto.password,
-        firstName,
-        lastName,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
         publicMetadata: { role: dto.role },
       });
       clerkUserId = clerkUser.id;
@@ -90,14 +91,14 @@ export class AdminUsersService {
         where: { id: clerkUserId },
         update: {
           email: dto.email,
-          name: dto.name,
+          name,
           phone: dto.phone,
           role: dto.role,
         },
         create: {
           id: clerkUserId,
           email: dto.email,
-          name: dto.name,
+          name,
           phone: dto.phone,
           role: dto.role,
         },
@@ -226,14 +227,6 @@ export class AdminUsersService {
         : {}),
       ...(query.role === undefined ? {} : { role: query.role }),
       ...(query.active === undefined ? {} : { active: query.active }),
-    };
-  }
-
-  private splitName(name: string): { firstName: string; lastName?: string } {
-    const [firstName = '', ...lastNameParts] = name.trim().split(/\s+/);
-    return {
-      firstName,
-      lastName: lastNameParts.join(' ') || undefined,
     };
   }
 

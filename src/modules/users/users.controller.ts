@@ -25,9 +25,18 @@ export class UsersController {
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Update the current user profile' })
+  @ApiOperation({
+    summary: 'Update the current user profile',
+    description:
+      'Updates phone and/or the name pair. firstName and lastName must be supplied together when changing the name.',
+  })
   @ApiResponse({ status: 200, type: MeResponseDto })
   @ApiResponse({ status: 409, description: 'Phone already in use' })
+  @ApiResponse({
+    status: 422,
+    description:
+      'Profile validation failed, including a one-sided or empty name pair',
+  })
   updateMe(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateMeDto) {
     return this.users.updateMe(user.id, dto);
   }

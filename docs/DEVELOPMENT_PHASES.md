@@ -1,6 +1,6 @@
 # SG Couture — Development Phases
 
-> **Status:** Living document · **Last updated:** 2026-07-09
+> **Status:** Living document · **Last updated:** 2026-07-15
 >
 > 🤖 **Claude Code:** read this file **first** on every task. Work only within the active phase unless told otherwise. Update statuses and checklists immediately after completing work.
 
@@ -52,6 +52,8 @@
 **Endpoints:** see [API_SPECIFICATION.md §2–3](./API_SPECIFICATION.md).
 **Acceptance criteria:** webhook replay-safe; deactivated user gets 403 everywhere; MANAGER cannot change roles; role change visible in Clerk metadata.
 
+**Maintenance — 2026-07-15:** `PATCH /users/me` now accepts explicit first/last names as an atomic optional pair, composes the unchanged DB `name` field, and pushes the components to Clerk without splitting.
+
 ---
 
 ## Phase 1.5 — Admin Identity Rework (dashboard-contract merge) ✅
@@ -69,6 +71,8 @@
 - [x] New error codes `LAST_ADMIN_REQUIRED`, `FORBIDDEN_TARGET` in `constants/error-codes.ts` (if missing)
 
 **Acceptance criteria:** staff accounts invisible on `/admin/customers/:id` (404); the last active ADMIN cannot be demoted/deactivated/deleted; a Clerk failure leaves the DB untouched (fault-injection test); MANAGER gets 403 on every `/admin/users` route.
+
+**Maintenance — 2026-07-15:** `POST /admin/users` now requires explicit non-empty `firstName` and `lastName`, passes them directly to Clerk, and persists their composed display name. No schema migration was needed.
 
 ---
 

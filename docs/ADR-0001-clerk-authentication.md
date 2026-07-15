@@ -43,3 +43,7 @@ Two clarifications adopted with the same merge:
   - *Role / ban updates:* best-effort compensating revert of Clerk `publicMetadata.role` and ban state to their previous values (the lifecycle webhook cannot fix this drift itself — it deliberately never overwrites authoritative `role`/`active`).
   - If a compensating call also fails, log a `CRITICAL` audit entry with both intended and actual Clerk/DB states for manual reconciliation. No retry queue at MVP; the admin simply retries the action.
 - The administrative password reset (2026-07-06 addendum) moved with the customers/users split to `POST /admin/customers/:id/reset-password`; behavior is unchanged.
+
+## Addendum — 2026-07-15: Explicit Clerk name components
+
+The earlier admin-create wording that described splitting a single display name is superseded. The Clerk instance requires a last name, so `POST /admin/users` now requires explicit, non-empty `firstName` and `lastName` values and passes them directly to Clerk. `PATCH /users/me` accepts the same values as an atomic optional pair: both are supplied for a name change, or both are omitted for a phone-only update. The local schema remains unchanged; `User.name` is composed from the explicit components. Inbound Clerk webhook/JIT sync uses the same composition direction and retains the primary email as the legacy no-name fallback.

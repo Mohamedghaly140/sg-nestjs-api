@@ -228,16 +228,28 @@ describe('ClerkSyncService', () => {
     expect(logger.warn).toHaveBeenCalled();
   });
 
-  it('pushes a name update to Clerk split into first/last name', async () => {
+  it('pushes an explicit name pair to Clerk without redistributing tokens', async () => {
     clerk.users.updateUser.mockResolvedValueOnce({});
 
-    await service.pushProfileToClerk('user_1', { name: 'Mariam A. Hassan' });
+    await service.pushProfileToClerk('user_1', {
+      firstName: 'Mary Anne',
+      lastName: 'Smith Hassan',
+    });
 
     expect(clerk.users.updateUser).toHaveBeenCalledWith('user_1', {
-      firstName: 'Mariam',
-      lastName: 'A. Hassan',
+      firstName: 'Mary Anne',
+      lastName: 'Smith Hassan',
     });
     expect(clerk.users.getUser).not.toHaveBeenCalled();
+  });
+
+  it('warns and skips Clerk writes for an internally mismatched name pair', async () => {
+    await service.pushProfileToClerk('user_1', {
+      firstName: 'Mariam',
+    } as never);
+
+    expect(clerk.users.updateUser).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
   });
 
   it('replaces the Clerk phone number, deleting superseded ones', async () => {

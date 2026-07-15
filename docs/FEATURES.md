@@ -21,10 +21,11 @@
 - Webhook is idempotent: `user.created` for an existing id = upsert; `user.deleted` for a missing id = no-op (200).
 - A verified JWT whose user row doesn't exist yet (webhook lag) → guard performs a just-in-time sync from Clerk's API, then proceeds.
 - Deactivation (`active = false`) blocks all authenticated routes with 403 `ACCOUNT_DISABLED`. Customers (`role = USER`) can be toggled by MANAGER+; staff activation is ADMIN-only.
+- Self-profile name updates accept explicit `firstName` + `lastName` as an atomic optional pair: both or neither. The backend never derives a missing component from the single local `name`; it composes that column from the validated pair and passes the explicit components to Clerk.
 
 **Staff management (ADMIN-only, `/admin/users`)**
 - Admin surface split: `/admin/customers` targets `role = USER` accounts only (list/detail/activate/reset-password); `/admin/users` manages all accounts incl. staff (list/create/update role+active/delete).
-- Create: Clerk `createUser` first (password handled by Clerk, never persisted here), then idempotent DB upsert with the Clerk id. Delete: Clerk `deleteUser` first (Clerk 404 tolerated), then DB delete.
+- Create: require explicit, non-empty `firstName` + `lastName`, pass them directly to Clerk `createUser` (password handled by Clerk, never persisted here), then idempotently upsert the Clerk id and composed display `name` in the DB. Delete: Clerk `deleteUser` first (Clerk 404 tolerated), then DB delete.
 - **Write ordering is always Clerk first, then DB** — a Clerk failure aborts with no DB change, so the Clerk webhook can never overwrite a half-applied mutation. DB stays the authoritative role source on reads. If the DB write fails *after* Clerk succeeded, a compensating Clerk rollback is attempted (deletes self-heal via webhook); failed compensation is `CRITICAL`-audit-logged — see [ADR-0001](./ADR-0001-clerk-authentication.md) 2026-07-07 addendum.
 - **Last-admin protection:** any update/delete that would leave no other *active* ADMIN → 409 `LAST_ADMIN_REQUIRED`.
 

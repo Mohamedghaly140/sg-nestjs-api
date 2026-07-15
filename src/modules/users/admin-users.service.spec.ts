@@ -101,7 +101,8 @@ describe('AdminUsersService', () => {
 
     await expect(
       service.createUser('admin_1', {
-        name: 'Mo Test',
+        firstName: 'Mary Anne',
+        lastName: 'Test',
         email: 'mo+test@example.com',
         phone: '+201000000050',
         password: 'Str0ngPass!2026',
@@ -113,7 +114,7 @@ describe('AdminUsersService', () => {
       phoneNumber: ['+201000000050'],
       username: 'mo_test',
       password: 'Str0ngPass!2026',
-      firstName: 'Mo',
+      firstName: 'Mary Anne',
       lastName: 'Test',
       publicMetadata: { role: Role.MANAGER },
     });
@@ -121,14 +122,14 @@ describe('AdminUsersService', () => {
       where: { id: 'user_clerk_new' },
       update: {
         email: 'mo+test@example.com',
-        name: 'Mo Test',
+        name: 'Mary Anne Test',
         phone: '+201000000050',
         role: Role.MANAGER,
       },
       create: {
         id: 'user_clerk_new',
         email: 'mo+test@example.com',
-        name: 'Mo Test',
+        name: 'Mary Anne Test',
         phone: '+201000000050',
         role: Role.MANAGER,
       },
@@ -149,7 +150,8 @@ describe('AdminUsersService', () => {
 
     await expect(
       service.createUser('admin_1', {
-        name: 'Mo Test',
+        firstName: 'Mo',
+        lastName: 'Test',
         email: 'mo@example.com',
         phone: '+201000000050',
         password: 'Str0ngPass!2026',
@@ -173,7 +175,8 @@ describe('AdminUsersService', () => {
 
     await expect(
       service.createUser('admin_1', {
-        name: 'Mo Test',
+        firstName: 'Mo',
+        lastName: 'Test',
         email: 'mo@example.com',
         phone: '+201000000050',
         password: 'Str0ngPass!2026',
@@ -190,7 +193,8 @@ describe('AdminUsersService', () => {
 
     await expect(
       service.createUser('admin_1', {
-        name: 'Mo Test',
+        firstName: 'Mo',
+        lastName: 'Test',
         email: 'mo@example.com',
         phone: '+201000000050',
         password: 'Str0ngPass!2026',

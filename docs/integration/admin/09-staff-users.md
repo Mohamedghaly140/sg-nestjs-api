@@ -52,7 +52,8 @@ Create an account (staff or customer) via Clerk. · **Role: Admin**
 
 | Field | Type | Required | Validation |
 |---|---|---|---|
-| `name` | string | ✔ | 2–120, trimmed |
+| `firstName` | string | ✔ | trimmed, non-empty; composed full name ≤ 120 |
+| `lastName` | string | ✔ | trimmed, non-empty; composed full name ≤ 120 |
 | `email` | string | ✔ | valid email (lowercased) |
 | `phone` | string | ✔ | Egyptian format (`+2010…`) |
 | `password` | string | ✔ | ≥ 8 chars (Clerk may reject weak/compromised ones) |
@@ -60,7 +61,8 @@ Create an account (staff or customer) via Clerk. · **Role: Admin**
 
 ```json
 {
-  "name": "Omar Farouk",
+  "firstName": "Omar",
+  "lastName": "Farouk",
   "email": "omar@sgcouture.com",
   "phone": "+201000000009",
   "password": "s3cure-Pass!",
@@ -68,13 +70,15 @@ Create an account (staff or customer) via Clerk. · **Role: Admin**
 }
 ```
 
+Render separate first-name and last-name inputs. Both are required; do not send the former single `name` field. Multi-token values are passed to Clerk as entered after outer trimming, so the backend never guesses which tokens belong to which component.
+
 **Success (201):** the created user (list shape above). The password is never persisted by this backend or echoed back.
 
 ### Endpoint-specific errors
 
 | HTTP | `code` | When |
 |---|---|---|
-| 422 | `VALIDATION_ERROR` | Clerk rejected the account — the `message` carries Clerk's reason (duplicate email/phone, weak or breached password). Show it to the operator. |
+| 422 | `VALIDATION_ERROR` | Local name/field validation failed, or Clerk rejected the account. For Clerk rejections the `message` carries its reason (duplicate email/phone, weak or breached password). Show it to the operator. |
 
 ---
 

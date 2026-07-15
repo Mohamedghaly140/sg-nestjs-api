@@ -2,6 +2,14 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-15 — Phases 1/1.5 maintenance · Explicit Clerk first/last names
+
+- Replaced the brittle single-display-name split on `POST /admin/users` with required, trimmed, non-empty `firstName` and `lastName`; both are passed directly to Clerk and composed into the unchanged local `User.name` column with a 120-character combined limit.
+- Updated `PATCH /users/me` to accept the name components as an atomic optional pair (both or neither), explicitly map only `name`/`phone` into Prisma, and push the explicit components to Clerk without re-splitting. Phone-only updates leave the name untouched; legacy `name`, one-sided, empty, and overlong pairs fail with 422 before writes.
+- Reused one composition utility for admin create, self-update, and inbound Clerk webhook/JIT sync while retaining the email fallback for legacy Clerk identities. Added focused DTO, service, and e2e regression coverage; no Prisma schema or migration change.
+- Made the combined-length validator Unicode-aware (delegates to class-validator's own `maxLength`) so the 120-character composed limit uses the same surrogate-pair semantics as the per-field `@MaxLength`, and does not falsely reject valid non-BMP names; added a boundary regression test.
+- Updated Swagger metadata/controllers, `API_SPECIFICATION.md`, `FEATURES.md`, `ADR-0001`, `DEVELOPMENT_PHASES.md`, the admin integration guide, the incident report, and added the initial storefront profile integration guide.
+
 ## 2026-07-10 — Phase 11 Hardening · Clerk webhook diagnostic logging
 
 - Added diagnostic logging to `ClerkWebhookController`: signature precondition failures now warn with the exact missing raw body/header fields, Svix verification failures now warn separately with the underlying error message, and verified Clerk deliveries now log the event type plus Clerk user id before dispatch.

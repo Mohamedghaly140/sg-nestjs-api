@@ -40,11 +40,16 @@ export class AdminUsersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a user account via Clerk' })
+  @ApiOperation({
+    summary: 'Create a user account via Clerk',
+    description:
+      'Creates a Clerk account from explicit firstName and lastName fields, then stores their composed display name locally.',
+  })
   @ApiResponse({ status: 201, type: AdminUserResponseDto })
   @ApiResponse({
     status: 422,
-    description: 'Clerk rejected the user creation request',
+    description:
+      'Request validation failed or Clerk rejected the user creation request',
   })
   create(@CurrentUser('id') actingId: string, @Body() dto: CreateAdminUserDto) {
     return this.users.createUser(actingId, dto);

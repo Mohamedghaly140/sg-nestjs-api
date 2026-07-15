@@ -10,12 +10,14 @@ import {
   MinLength,
 } from 'class-validator';
 import { Role } from '../../../generated/prisma/client';
+import { IsComposedNameMaxLength } from '../validators/is-composed-name-max-length.validator';
 
 export class CreateAdminUserDto {
   @ApiProperty({
-    description: 'Display name, 2 to 120 characters',
-    example: 'Mariam Hassan',
-    minLength: 2,
+    description:
+      'First name, trimmed and non-empty. The composed first and last name must not exceed 120 characters',
+    example: 'Mariam',
+    minLength: 1,
     maxLength: 120,
   })
   @Transform(({ value }: { value: unknown }) =>
@@ -23,9 +25,26 @@ export class CreateAdminUserDto {
   )
   @IsString()
   @IsNotEmpty()
-  @MinLength(2)
+  @MinLength(1)
   @MaxLength(120)
-  name: string;
+  firstName: string;
+
+  @ApiProperty({
+    description:
+      'Last name, trimmed and non-empty. The composed first and last name must not exceed 120 characters',
+    example: 'Hassan',
+    minLength: 1,
+    maxLength: 120,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(120)
+  @IsComposedNameMaxLength(120)
+  lastName: string;
 
   @ApiProperty({
     description: 'Primary email address',

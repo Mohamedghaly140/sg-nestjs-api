@@ -5,6 +5,7 @@ import { Logger } from 'nestjs-pino';
 import { Prisma, Role, type User } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CLERK_CLIENT, type ClerkClient } from '../clerk-client.provider';
+import { composeClerkName } from '../utils/compose-clerk-name';
 
 interface ClerkIdentity {
   id: string;
@@ -13,10 +14,9 @@ interface ClerkIdentity {
   phone: string;
 }
 
-interface ProfileUpdate {
-  name?: string;
-  phone?: string;
-}
+type ProfileUpdate =
+  | { firstName: string; lastName: string; phone?: string }
+  | { firstName?: never; lastName?: never; phone?: string };
 
 @Injectable()
 export class ClerkSyncService {
@@ -93,11 +93,16 @@ export class ClerkSyncService {
     update: ProfileUpdate,
   ): Promise<void> {
     try {
-      if (update.name !== undefined) {
-        const [firstName, ...lastNameParts] = update.name.trim().split(/\s+/);
+      const hasFirstName = update.firstName !== undefined;
+      const hasLastName = update.lastName !== undefined;
+      if (hasFirstName !== hasLastName) {
+        throw new Error('Profile name updates require firstName and lastName');
+      }
+
+      if (hasFirstName && hasLastName) {
         await this.clerk.users.updateUser(clerkUserId, {
-          firstName,
-          lastName: lastNameParts.join(' ') || undefined,
+          firstName: update.firstName,
+          lastName: update.lastName,
         });
       }
 
@@ -179,7 +184,7 @@ export class ClerkSyncService {
     lastName: string | null | undefined,
     email: string,
   ): string {
-    return [firstName, lastName].filter(Boolean).join(' ').trim() || email;
+    return composeClerkName(firstName, lastName) || email;
   }
 
   private isUniqueConstraintError(

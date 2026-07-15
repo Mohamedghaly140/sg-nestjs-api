@@ -44,13 +44,17 @@ describe('UsersService', () => {
     });
   });
 
-  it('updates the local profile before pushing the profile to Clerk', async () => {
-    const dto = { name: 'User Updated' };
+  it('composes an explicit name pair without writing DTO-only fields to Prisma', async () => {
+    const dto = {
+      firstName: 'Mary Anne',
+      lastName: 'Updated',
+      phone: '+201000000003',
+    };
     const user = {
       id: 'user_1',
       email: 'user@test.dev',
-      name: 'User Updated',
-      phone: '+201000000001',
+      name: 'Mary Anne Updated',
+      phone: '+201000000003',
       role: 'USER',
       createdAt: new Date('2026-07-06T12:00:00.000Z'),
     };
@@ -60,7 +64,10 @@ describe('UsersService', () => {
     await expect(service.updateMe('user_1', dto)).resolves.toBe(user);
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'user_1' },
-      data: dto,
+      data: {
+        name: 'Mary Anne Updated',
+        phone: '+201000000003',
+      },
       select: {
         id: true,
         email: true,
@@ -70,6 +77,26 @@ describe('UsersService', () => {
         createdAt: true,
       },
     });
+    expect(clerkSync.pushProfileToClerk).toHaveBeenCalledWith('user_1', dto);
+  });
+
+  it('updates a phone without changing or pushing name fields', async () => {
+    const dto = { phone: '+201000000003' };
+    const user = {
+      id: 'user_1',
+      email: 'user@test.dev',
+      name: 'User One',
+      phone: '+201000000003',
+      role: 'USER',
+      createdAt: new Date('2026-07-06T12:00:00.000Z'),
+    };
+    prisma.user.update.mockResolvedValueOnce(user);
+    clerkSync.pushProfileToClerk.mockResolvedValueOnce(undefined);
+
+    await expect(service.updateMe('user_1', dto)).resolves.toBe(user);
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { phone: '+201000000003' } }),
+    );
     expect(clerkSync.pushProfileToClerk).toHaveBeenCalledWith('user_1', dto);
   });
 });
