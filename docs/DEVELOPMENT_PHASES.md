@@ -227,6 +227,8 @@
 - [x] Final docs audit: 49 routes verified against the spec + Swagger decorators; 3 doc drifts fixed (CHANGELOG 2026-07-10)
 - [ ] **Acceptance — launch checklist sign-off** ([RUNBOOK.md §9](./RUNBOOK.md#9-launch-checklist)): pending actual deployment; requires decisions/actions outside the repo (hosting platform, production Clerk instance + webhook config, `CORS_ORIGINS` for the real storefront/dashboard domains, DB backups). Note Phases 7 (Geidea) and 9 (Notifications) remain explicitly skipped — CARD checkout is gated with 422 `PAYMENT_METHOD_UNAVAILABLE`, so a CASH-only launch is possible.
 
+**Maintenance — 2026-07-15:** restored a clean full-project `pnpm exec tsc --noEmit` by updating test doubles and fixtures to match the current NestJS, Clerk, class-transformer, Prisma, Jest, Node header, and strict-nullability types. Runtime behavior, endpoints, and the launch-sign-off status are unchanged.
+
 ---
 
 ## Master Implementation Progress

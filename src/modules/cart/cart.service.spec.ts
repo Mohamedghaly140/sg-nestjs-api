@@ -20,6 +20,14 @@ interface FakeProduct {
   status: ProductStatus;
 }
 
+type FakeProductSeed = Omit<
+  Partial<FakeProduct>,
+  'price' | 'priceAfterDiscount'
+> & {
+  price?: Prisma.Decimal | string;
+  priceAfterDiscount?: Prisma.Decimal | string;
+};
+
 interface FakeCart {
   id: string;
   userId: string | null;
@@ -189,7 +197,7 @@ class FakePrisma {
     }),
   };
 
-  seedProduct(overrides: Partial<FakeProduct> = {}): FakeProduct {
+  seedProduct(overrides: FakeProductSeed = {}): FakeProduct {
     const product: FakeProduct = {
       id: overrides.id ?? this.nextId('prod'),
       name: overrides.name ?? 'Test Dress',

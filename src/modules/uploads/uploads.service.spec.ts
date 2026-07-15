@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/unbound-method */
 import { ConfigService } from '@nestjs/config';
 import type { CloudinaryClient } from './cloudinary-client.provider';
 import { UploadsService } from './uploads.service';
 
 describe('UploadsService', () => {
+  const destroy = jest.fn<Promise<{ result?: string }>, [string]>();
   const cloudinary = {
     utils: { api_sign_request: jest.fn().mockReturnValue('signed') },
-    uploader: { destroy: jest.fn() },
-  } as unknown as jest.Mocked<CloudinaryClient>;
+    uploader: { destroy },
+  } satisfies CloudinaryClient;
   const config = {
     getOrThrow: jest.fn((key: string) => {
       const values: Record<string, string> = {
@@ -48,7 +48,7 @@ describe('UploadsService', () => {
   });
 
   it('swallows Cloudinary destroy failures', async () => {
-    cloudinary.uploader.destroy.mockRejectedValueOnce(new Error('down'));
+    destroy.mockRejectedValueOnce(new Error('down'));
 
     await expect(service.destroyImage('image-id')).resolves.toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(

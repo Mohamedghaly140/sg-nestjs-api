@@ -1,5 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common';
-import type { Response } from 'express';
+import { ExecutionContextHost } from '@nestjs/core/helpers/execution-context-host';
 import type { Logger } from 'nestjs-pino';
 import { Prisma } from '../../generated/prisma/client';
 import { ERROR_CODES } from '../constants/error-codes';
@@ -23,13 +23,7 @@ describe('PrismaExceptionFilter', () => {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
-    host = {
-      switchToHttp: () => ({
-        getResponse: () => response as unknown as Response,
-        getRequest: jest.fn(),
-        getNext: jest.fn(),
-      }),
-    } as ArgumentsHost;
+    host = new ExecutionContextHost([jest.fn(), response, jest.fn()]);
     filter = new PrismaExceptionFilter(logger as unknown as Logger);
   });
 

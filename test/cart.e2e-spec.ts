@@ -14,6 +14,14 @@ describe('/cart (e2e)', () => {
   let dressId: string;
   let scarfId: string;
 
+  function getSetCookies(headers: {
+    'set-cookie'?: string | string[];
+  }): string[] {
+    const value = headers['set-cookie'];
+    if (Array.isArray(value)) return value;
+    return value === undefined ? [] : [value];
+  }
+
   beforeAll(async () => {
     ({ app, prisma } = await createCatalogTestApp());
   });
@@ -122,7 +130,7 @@ describe('/cart (e2e)', () => {
       .expect(201)
       .expect(({ body, headers }) => {
         expect(body.data.sessionToken).toEqual(expect.any(String));
-        cookie = (headers['set-cookie'] as string[])[0];
+        cookie = getSetCookies(headers)[0] ?? '';
         expect(cookie).toContain('cart_session=');
       });
 
@@ -163,7 +171,7 @@ describe('/cart (e2e)', () => {
       .send({ productId: dressId, quantity: 2, color: 'Black', size: 'M' })
       .expect(201)
       .expect(({ headers }) => {
-        cookie = (headers['set-cookie'] as string[])[0];
+        cookie = getSetCookies(headers)[0] ?? '';
       });
 
     await request(app.getHttpServer())
@@ -172,8 +180,7 @@ describe('/cart (e2e)', () => {
       .set('Cookie', cookie)
       .expect(200)
       .expect(({ body, headers }) => {
-        const setCookie = headers['set-cookie'] as string[] | undefined;
-        expect(setCookie?.join(';')).toContain('cart_session=');
+        expect(getSetCookies(headers).join(';')).toContain('cart_session=');
         expect(body.data.items).toEqual(
           expect.arrayContaining([
             expect.objectContaining({

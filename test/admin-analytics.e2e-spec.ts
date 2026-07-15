@@ -540,6 +540,9 @@ describe('/admin analytics and dashboard (e2e)', () => {
           (order: { humanOrderId: string }) =>
             order.humanOrderId === `${ORDER_PREFIX}0005`,
         );
+        if (!recent) {
+          throw new Error('Expected seeded recent order to be present');
+        }
         expect(recent).toMatchObject({
           humanOrderId: `${ORDER_PREFIX}0005`,
           totalOrderPrice: 999999,

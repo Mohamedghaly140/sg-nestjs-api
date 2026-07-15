@@ -2,6 +2,12 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-15 — Phase 11 maintenance · Full-project TypeScript cleanup
+
+- Fixed all 19 errors reported by `pnpm exec tsc --noEmit`, confined to unit/e2e test code: complete Nest execution contexts, current Clerk webhook/JWT fixtures, class-transformer metadata, Prisma Decimal seed inputs, transaction and Cloudinary Jest mocks, and safe narrowing for optional analytics rows and `set-cookie` headers.
+- Kept the corrections type-safe and behavior-preserving; no production implementation, endpoint, Swagger contract, Prisma schema, migration, database documentation, or ADR changed.
+- Verified `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test` (55 suites / 328 tests), and `pnpm test:cov` (55 suites / 328 tests). A TDD evidence record was added at `docs/testing/typescript-noemit-cleanup.tdd.md`; `DEVELOPMENT_PHASES.md` records the Phase 11 maintenance result without changing the pending deployment sign-off.
+
 ## 2026-07-15 — Phases 1/1.5 maintenance · Explicit Clerk first/last names
 
 - Replaced the brittle single-display-name split on `POST /admin/users` with required, trimmed, non-empty `firstName` and `lastName`; both are passed directly to Clerk and composed into the unchanged local `User.name` column with a 120-character combined limit.

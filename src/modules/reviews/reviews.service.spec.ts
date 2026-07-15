@@ -19,8 +19,9 @@ describe('ReviewsService', () => {
       findMany: jest.fn(),
     },
     $queryRaw: jest.fn(),
-    $transaction: jest.fn(async (callback: (tx: typeof prisma) => unknown) =>
-      callback(prisma),
+    $transaction: jest.fn(
+      async (callback: (tx: Prisma.TransactionClient) => unknown) =>
+        callback(prisma as never),
     ),
   };
   const service = new ReviewsService(prisma as never);
@@ -28,7 +29,8 @@ describe('ReviewsService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation(
-      async (callback: (tx: typeof prisma) => unknown) => callback(prisma),
+      async (callback: (tx: Prisma.TransactionClient) => unknown) =>
+        callback(prisma as never),
     );
   });
 

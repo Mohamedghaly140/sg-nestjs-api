@@ -15,6 +15,7 @@ describe('parseBooleanQuery', () => {
         key: 'featured',
         value: !raw,
         type: 0,
+        options: {},
       }),
     ).toBe(expected);
   });

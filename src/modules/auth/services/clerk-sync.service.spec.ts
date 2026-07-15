@@ -2,17 +2,61 @@
 import type { UserJSON } from '@clerk/backend';
 import { Prisma, Role } from '../../../generated/prisma/client';
 import type { PrismaService } from '../../../prisma/prisma.service';
+import type { ClerkClient } from '../clerk-client.provider';
 import { ClerkSyncService } from './clerk-sync.service';
 
 function webhookUser(overrides: Partial<UserJSON> = {}): UserJSON {
-  return {
+  const user: UserJSON = {
+    object: 'user',
     id: 'user_1',
+    username: null,
     first_name: 'Mariam',
     last_name: 'Hassan',
+    image_url: 'https://img.clerk.test/user_1',
+    has_image: false,
     primary_email_address_id: 'email_1',
     primary_phone_number_id: null,
-    email_addresses: [{ id: 'email_1', email_address: 'mariam@test.dev' }],
+    primary_web3_wallet_id: null,
+    password_enabled: true,
+    two_factor_enabled: false,
+    totp_enabled: false,
+    backup_code_enabled: false,
+    email_addresses: [
+      {
+        object: 'email_address',
+        id: 'email_1',
+        email_address: 'mariam@test.dev',
+        verification: null,
+        linked_to: [],
+      },
+    ],
     phone_numbers: [],
+    web3_wallets: [],
+    organization_memberships: null,
+    external_accounts: [],
+    enterprise_accounts: [],
+    password_last_updated_at: null,
+    public_metadata: {},
+    private_metadata: {},
+    unsafe_metadata: {},
+    external_id: null,
+    last_sign_in_at: null,
+    banned: false,
+    locked: false,
+    lockout_expires_in_seconds: null,
+    verification_attempts_remaining: null,
+    created_at: 1,
+    updated_at: 1,
+    last_active_at: null,
+    create_organization_enabled: true,
+    create_organizations_limit: null,
+    delete_self_enabled: true,
+    legal_accepted_at: null,
+    locale: null,
+  };
+
+  return {
+    ...user,
     ...overrides,
   };
 }
@@ -41,7 +85,7 @@ describe('ClerkSyncService', () => {
   };
   const service = new ClerkSyncService(
     prisma as unknown as PrismaService,
-    clerk,
+    clerk as unknown as ClerkClient,
     logger as never,
   );
 
@@ -93,7 +137,11 @@ describe('ClerkSyncService', () => {
 
   it('makes deletion of an unknown id a no-op', async () => {
     await expect(
-      service.deleteFromWebhookUser({ id: 'missing' }),
+      service.deleteFromWebhookUser({
+        object: 'user',
+        id: 'missing',
+        deleted: true,
+      }),
     ).resolves.toBeUndefined();
     expect(prisma.user.deleteMany).toHaveBeenCalledWith({
       where: { id: 'missing' },
@@ -172,7 +220,7 @@ describe('ClerkSyncService', () => {
   });
 
   it('skips deletion when the webhook payload has no id', async () => {
-    await service.deleteFromWebhookUser({} as never);
+    await service.deleteFromWebhookUser({ object: 'user', deleted: true });
     expect(prisma.user.deleteMany).not.toHaveBeenCalled();
   });
 

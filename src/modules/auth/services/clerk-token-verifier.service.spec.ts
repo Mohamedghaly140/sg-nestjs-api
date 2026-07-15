@@ -8,7 +8,16 @@ jest.mock('@clerk/backend', () => ({
 
 describe('ClerkTokenVerifierService', () => {
   it('verifies with the configured key, parties, and clock skew', async () => {
-    jest.mocked(verifyToken).mockResolvedValue({ sub: 'user_1' });
+    jest.mocked(verifyToken).mockResolvedValue({
+      __raw: 'token',
+      iss: 'https://clerk.test',
+      sub: 'user_1',
+      sid: 'session_1',
+      nbf: 1,
+      exp: 3,
+      iat: 2,
+      v: 2,
+    });
     const config = {
       getOrThrow: jest.fn().mockReturnValue('sk_test'),
       get: jest.fn().mockReturnValue(['https://shop.test']),
