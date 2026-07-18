@@ -163,6 +163,8 @@
 
 **Acceptance criteria (must-pass concurrency test):** two parallel checkouts for the same last unit → exactly one 201, one 409 `INSUFFICIENT_STOCK`, stock ends at 0, no money implications for the loser. Full transition matrix e2e-tested incl. restoration side effects; totals verified against seeded fixtures to the piaster.
 
+**Maintenance — 2026-07-17:** expanded `prisma/seed.ts` order fixtures for admin Orders QA (guest order with `anon*` snapshot, a SHIPPED/unpaid/CASH order, and a PROCESSING order with WELCOME15 applied) and repointed all seed image URLs to real Cloudinary demo assets. Dev-seed data only — no schema/migration/endpoint change.
+
 ---
 
 ## Phase 7 — Payments (Geidea) ⬜

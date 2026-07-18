@@ -24,7 +24,7 @@ Paginated user table across all roles. · **Role: Admin**
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": [
     {
       "id": "user_2mgr456",

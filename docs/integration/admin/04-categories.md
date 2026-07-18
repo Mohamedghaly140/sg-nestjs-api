@@ -22,7 +22,7 @@ Paginated category table with nested sub-categories. · **Role: Manager+**
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": [
     {
       "id": "ckvcat123",

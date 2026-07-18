@@ -22,7 +22,7 @@ Paginated zone table. · **Role: Manager+**
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": [
     {
       "id": "ckvzone123",

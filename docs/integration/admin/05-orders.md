@@ -34,7 +34,7 @@ GET /api/v1/admin/orders?status=PENDING&isPaid=false&search=ORD-0000
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": [
     {
       "id": "ckvorder123",

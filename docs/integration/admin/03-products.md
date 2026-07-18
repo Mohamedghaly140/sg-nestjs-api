@@ -33,7 +33,7 @@ GET /api/v1/admin/products?page=1&limit=20&status=ACTIVE&search=satin
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": [
     {
       "id": "ckvprod123",

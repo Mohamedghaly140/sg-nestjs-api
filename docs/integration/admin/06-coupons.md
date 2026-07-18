@@ -30,7 +30,7 @@ Lifecycle semantics (also use these to render a status badge client-side):
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": [
     {
       "id": "ckvcoup123",

@@ -23,7 +23,7 @@ Paginated customer table. · **Role: Manager+**
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": [
     {
       "id": "user_2abc123",

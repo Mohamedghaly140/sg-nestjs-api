@@ -1,4 +1,4 @@
-# 01 — Current User Profile
+# 11 — Current User Profile
 
 These endpoints require a valid Clerk Bearer token. Successful responses use the global `{ status, message, data, meta }` envelope; validation errors return `422 VALIDATION_ERROR`.
 

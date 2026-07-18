@@ -49,25 +49,30 @@ Build the dashboard navigation around this: a MANAGER should not see the Dashboa
 ```json
 {
   "status": "success",
-  "message": "OK",
+  "message": "Success",
   "data": { "...payload..." },
   "meta": { "...pagination, only on list endpoints..." }
 }
 ```
 
-Error:
+DTO/query validation error:
 
 ```json
 {
   "status": "error",
-  "message": "Human-readable summary",
-  "code": "STABLE_MACHINE_CODE",
-  "errors": [ { "field": "price", "message": "price must be a positive number" } ]
+  "message": "Validation failed",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    {
+      "field": "price",
+      "constraints": { "min": "price must not be less than 0.01" }
+    }
+  ]
 }
 ```
 
 - `code` is a **stable machine code** (table below) — branch on it, never on `message`.
-- `errors` is optional and carries field-level details (validation) or structured context (e.g. stock conflicts).
+- `errors` is optional. DTO/query validation entries use `{ field, constraints }`; business errors can use their own documented structured context (e.g. stock conflicts).
 - `DELETE` endpoints that succeed return **`204 No Content` with an empty body** — don't try to parse JSON.
 
 In the module docs, example responses show **the `data` payload only** unless the envelope or `meta` matters.
@@ -89,7 +94,7 @@ and return `meta` alongside `data`:
 
 ## Data formats
 
-- **Money & record decimals are JSON *strings*** with 2-decimal precision: `"1299.00"` (EGP — the only currency). Percentages and ratings on records are also strings (`"15.00"`, `"4.5"`). Parse with a decimal-safe approach; don't do float math on them.
+- **Money & record decimals are JSON *strings***, but their scale varies by endpoint. Product, coupon, and shipping-zone records can omit trailing zeros (for example, `"2400"` or `"15"`), while order monetary fields use two decimal places (for example, `"949.00"`). Parse them with a decimal-safe approach, format them for display in the client, and don't assume or validate a fixed scale.
   - **Exception:** the Dashboard (§01) and Analytics (§02) endpoints return plain JSON **numbers** — they are chart/KPI inputs, not editable records.
 - **Dates** are ISO 8601 UTC strings: `"2026-07-09T12:00:00.000Z"`. Date-only analytics buckets are `"YYYY-MM-DD"`.
 - **IDs** are cuid strings (`"ckvprod123…"`) except user IDs, which are Clerk IDs (`"user_2abc…"`).
@@ -104,7 +109,7 @@ and return `meta` alongside `data`:
 Request bodies are validated strictly:
 
 - Unknown/extra body fields are **rejected** (`422 VALIDATION_ERROR`) — send exactly the documented fields.
-- Field-level failures come back in `errors[]` with per-field messages.
+- Field-level failures come back in `errors[]` as `{ field, constraints }`. `field` is the property path (nested DTO paths use dotted names such as `contact.email`), and `constraints` maps validator rule names to messages.
 - Query params are type-coerced (`?featured=true`, `?page=2` as strings are fine).
 
 ## Rate limiting
