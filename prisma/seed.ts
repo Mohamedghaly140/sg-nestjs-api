@@ -117,13 +117,13 @@ async function seed() {
       update: {
         name: 'Dresses',
         imageId: 'seed/categories/dresses',
-        imageUrl: 'https://res.cloudinary.com/demo/image/upload/dresses.jpg',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/woman.jpg',
       },
       create: {
         name: 'Dresses',
         slug: 'dresses',
         imageId: 'seed/categories/dresses',
-        imageUrl: 'https://res.cloudinary.com/demo/image/upload/dresses.jpg',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/woman.jpg',
       },
     });
 
@@ -132,13 +132,13 @@ async function seed() {
       update: {
         name: 'Separates',
         imageId: 'seed/categories/separates',
-        imageUrl: 'https://res.cloudinary.com/demo/image/upload/separates.jpg',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/couple.jpg',
       },
       create: {
         name: 'Separates',
         slug: 'separates',
         imageId: 'seed/categories/separates',
-        imageUrl: 'https://res.cloudinary.com/demo/image/upload/separates.jpg',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/couple.jpg',
       },
     });
 
@@ -196,8 +196,7 @@ async function seed() {
         sizes: ['S', 'M', 'L'],
         colors: ['Emerald', 'Black'],
         imageId: 'seed/products/satin-cowl-neck-dress/cover',
-        imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/satin-cowl-neck-dress.jpg',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/cld-sample.jpg',
         ratingsAverage: '4.5',
         ratingsQuantity: 2,
         status: ProductStatus.ACTIVE,
@@ -217,8 +216,7 @@ async function seed() {
         sizes: ['S', 'M', 'L'],
         colors: ['Emerald', 'Black'],
         imageId: 'seed/products/satin-cowl-neck-dress/cover',
-        imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/satin-cowl-neck-dress.jpg',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/cld-sample.jpg',
         ratingsAverage: '4.5',
         ratingsQuantity: 2,
         status: ProductStatus.ACTIVE,
@@ -243,7 +241,7 @@ async function seed() {
         colors: ['Ivory', 'Dusty Rose'],
         imageId: 'seed/products/linen-puff-sleeve-blouse/cover',
         imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/linen-puff-sleeve-blouse.jpg',
+          'https://res.cloudinary.com/demo/image/upload/cld-sample-2.jpg',
         ratingsAverage: null,
         ratingsQuantity: 0,
         status: ProductStatus.DRAFT,
@@ -264,7 +262,7 @@ async function seed() {
         colors: ['Ivory', 'Dusty Rose'],
         imageId: 'seed/products/linen-puff-sleeve-blouse/cover',
         imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/linen-puff-sleeve-blouse.jpg',
+          'https://res.cloudinary.com/demo/image/upload/cld-sample-2.jpg',
         status: ProductStatus.DRAFT,
         categoryId: separates.id,
       },
@@ -286,7 +284,7 @@ async function seed() {
         colors: ['Burgundy'],
         imageId: 'seed/products/velvet-wrap-dress/cover',
         imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/velvet-wrap-dress.jpg',
+          'https://res.cloudinary.com/demo/image/upload/cld-sample-3.jpg',
         ratingsAverage: null,
         ratingsQuantity: 0,
         status: ProductStatus.ARCHIVED,
@@ -307,7 +305,7 @@ async function seed() {
         colors: ['Burgundy'],
         imageId: 'seed/products/velvet-wrap-dress/cover',
         imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/velvet-wrap-dress.jpg',
+          'https://res.cloudinary.com/demo/image/upload/cld-sample-3.jpg',
         status: ProductStatus.ARCHIVED,
         categoryId: dresses.id,
       },
@@ -318,6 +316,7 @@ async function seed() {
     const catalogProducts = [
       {
         slug: 'pleated-chiffon-gown',
+        image: 'cld-sample-4.jpg',
         name: 'Pleated Chiffon Gown',
         description:
           'Airy pleated chiffon gown with a cinched waist and flowing skirt.',
@@ -336,6 +335,7 @@ async function seed() {
       },
       {
         slug: 'floral-tea-day-dress',
+        image: 'cld-sample-5.jpg',
         name: 'Floral Tea Day Dress',
         description:
           'Knee-length day dress in a soft floral print with short sleeves.',
@@ -354,6 +354,7 @@ async function seed() {
       },
       {
         slug: 'silk-button-down-blouse',
+        image: 'sample.jpg',
         name: 'Silk Button-Down Blouse',
         description:
           'Classic silk blouse with mother-of-pearl buttons and a relaxed fit.',
@@ -373,11 +374,11 @@ async function seed() {
     ];
 
     const extraSubCategoryJoins: Array<readonly [string, string]> = [];
-    for (const { subCategoryId, ...product } of catalogProducts) {
+    for (const { subCategoryId, image, ...product } of catalogProducts) {
       const data = {
         ...product,
         imageId: `seed/products/${product.slug}/cover`,
-        imageUrl: `https://res.cloudinary.com/demo/image/upload/${product.slug}.jpg`,
+        imageUrl: `https://res.cloudinary.com/demo/image/upload/${image}`,
         status: ProductStatus.ACTIVE,
       };
       const created = await prisma.product.upsert({
@@ -410,8 +411,7 @@ async function seed() {
         id: 'seed_image_satin_front',
         productId: satinDress.id,
         imageId: 'seed/products/satin-cowl-neck-dress/front',
-        imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/satin-cowl-neck-dress-front.jpg',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/cld-sample.jpg',
         sortOrder: 0,
       },
       {
@@ -419,7 +419,7 @@ async function seed() {
         productId: satinDress.id,
         imageId: 'seed/products/satin-cowl-neck-dress/back',
         imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/satin-cowl-neck-dress-back.jpg',
+          'https://res.cloudinary.com/demo/image/upload/cld-sample-4.jpg',
         sortOrder: 1,
       },
       {
@@ -427,7 +427,7 @@ async function seed() {
         productId: linenBlouse.id,
         imageId: 'seed/products/linen-puff-sleeve-blouse/front',
         imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/linen-puff-sleeve-blouse-front.jpg',
+          'https://res.cloudinary.com/demo/image/upload/cld-sample-2.jpg',
         sortOrder: 0,
       },
       {
@@ -435,7 +435,7 @@ async function seed() {
         productId: velvetDress.id,
         imageId: 'seed/products/velvet-wrap-dress/front',
         imageUrl:
-          'https://res.cloudinary.com/demo/image/upload/velvet-wrap-dress-front.jpg',
+          'https://res.cloudinary.com/demo/image/upload/cld-sample-3.jpg',
         sortOrder: 0,
       },
     ];
@@ -486,11 +486,11 @@ async function seed() {
       },
     });
 
-    await prisma.coupon.upsert({
+    const welcome15 = await prisma.coupon.upsert({
       where: { name: 'WELCOME15' },
       update: {
         discount: '15.00',
-        usedCount: 0,
+        usedCount: 1,
         maxUsage: 100,
         perUserLimit: 1,
         expire: new Date('2027-12-31T23:59:59.000Z'),
@@ -499,6 +499,7 @@ async function seed() {
       create: {
         name: 'WELCOME15',
         discount: '15.00',
+        usedCount: 1,
         maxUsage: 100,
         perUserLimit: 1,
         expire: new Date('2027-12-31T23:59:59.000Z'),
@@ -627,6 +628,113 @@ async function seed() {
       },
     });
 
+    // Guest order (no registered user) — drives the admin guest-customer panel.
+    const guestOrder = await prisma.order.upsert({
+      where: { humanOrderId: 'ORD-900003' },
+      update: {
+        status: OrderStatus.PENDING,
+        paymentMethod: PaymentMethod.CASH,
+        shippingFees: '75.00',
+        totalOrderPrice: '1425.00',
+        isPaid: false,
+        paidAt: null,
+        isDelivered: false,
+        deliveredAt: null,
+        notes: null,
+        userId: null,
+        shippingAddressId: null,
+        anonName: 'Layla Ibrahim',
+        anonPhone: '+201555555001',
+        anonEmail: 'layla.guest@example.com',
+        anonCountry: 'Egypt',
+        anonGovernorate: 'Cairo',
+        anonCity: 'Nasr City',
+        anonArea: 'Zone 7',
+        anonAddressLine1: '12 El-Nasr Road',
+        anonDetails: 'Apartment 4, 2nd floor',
+        anonPostalCode: 11765,
+        anonShippingPhone: '+201555555002',
+      },
+      create: {
+        humanOrderId: 'ORD-900003',
+        status: OrderStatus.PENDING,
+        paymentMethod: PaymentMethod.CASH,
+        shippingFees: '75.00',
+        totalOrderPrice: '1425.00',
+        anonName: 'Layla Ibrahim',
+        anonPhone: '+201555555001',
+        anonEmail: 'layla.guest@example.com',
+        anonCountry: 'Egypt',
+        anonGovernorate: 'Cairo',
+        anonCity: 'Nasr City',
+        anonArea: 'Zone 7',
+        anonAddressLine1: '12 El-Nasr Road',
+        anonDetails: 'Apartment 4, 2nd floor',
+        anonPostalCode: 11765,
+        anonShippingPhone: '+201555555002',
+      },
+    });
+
+    // Shipped + unpaid CASH order — drives the "mark paid before delivering" guard.
+    const shippedOrder = await prisma.order.upsert({
+      where: { humanOrderId: 'ORD-900004' },
+      update: {
+        status: OrderStatus.SHIPPED,
+        paymentMethod: PaymentMethod.CASH,
+        shippingFees: '90.00',
+        totalOrderPrice: '2130.00',
+        isPaid: false,
+        paidAt: null,
+        isDelivered: false,
+        deliveredAt: null,
+        notes: null,
+        userId: customer.id,
+        shippingAddressId: customerAddress.id,
+      },
+      create: {
+        humanOrderId: 'ORD-900004',
+        status: OrderStatus.SHIPPED,
+        paymentMethod: PaymentMethod.CASH,
+        shippingFees: '90.00',
+        totalOrderPrice: '2130.00',
+        userId: customer.id,
+        shippingAddressId: customerAddress.id,
+      },
+    });
+
+    // Processing order with a coupon applied — drives the discount line + coupon
+    // label on the admin totals card. The coupon is consumed consistently with
+    // CouponsService: usedCount is incremented and a CouponUsage row is seeded.
+    const couponOrder = await prisma.order.upsert({
+      where: { humanOrderId: 'ORD-900005' },
+      update: {
+        status: OrderStatus.PROCESSING,
+        paymentMethod: PaymentMethod.CASH,
+        shippingFees: '75.00',
+        totalOrderPrice: '1809.00',
+        discountApplied: '306.00',
+        couponId: welcome15.id,
+        isPaid: false,
+        paidAt: null,
+        isDelivered: false,
+        deliveredAt: null,
+        notes: null,
+        userId: customer.id,
+        shippingAddressId: customerAddress.id,
+      },
+      create: {
+        humanOrderId: 'ORD-900005',
+        status: OrderStatus.PROCESSING,
+        paymentMethod: PaymentMethod.CASH,
+        shippingFees: '75.00',
+        totalOrderPrice: '1809.00',
+        discountApplied: '306.00',
+        couponId: welcome15.id,
+        userId: customer.id,
+        shippingAddressId: customerAddress.id,
+      },
+    });
+
     await prisma.orderItem.upsert({
       where: { id: 'seed_order_item_pending_satin' },
       update: {
@@ -669,10 +777,87 @@ async function seed() {
       },
     });
 
+    await prisma.orderItem.upsert({
+      where: { id: 'seed_order_item_guest_linen' },
+      update: {
+        quantity: 1,
+        color: 'Ivory',
+        size: 'M',
+        price: linenBlousePrice,
+        orderId: guestOrder.id,
+        productId: linenBlouse.id,
+      },
+      create: {
+        id: 'seed_order_item_guest_linen',
+        quantity: 1,
+        color: 'Ivory',
+        size: 'M',
+        price: linenBlousePrice,
+        orderId: guestOrder.id,
+        productId: linenBlouse.id,
+      },
+    });
+
+    await prisma.orderItem.upsert({
+      where: { id: 'seed_order_item_shipped_satin' },
+      update: {
+        quantity: 1,
+        color: 'Black',
+        size: 'L',
+        price: satinDressPrice,
+        orderId: shippedOrder.id,
+        productId: satinDress.id,
+      },
+      create: {
+        id: 'seed_order_item_shipped_satin',
+        quantity: 1,
+        color: 'Black',
+        size: 'L',
+        price: satinDressPrice,
+        orderId: shippedOrder.id,
+        productId: satinDress.id,
+      },
+    });
+
+    await prisma.orderItem.upsert({
+      where: { id: 'seed_order_item_processing_satin' },
+      update: {
+        quantity: 1,
+        color: 'Emerald',
+        size: 'S',
+        price: satinDressPrice,
+        orderId: couponOrder.id,
+        productId: satinDress.id,
+      },
+      create: {
+        id: 'seed_order_item_processing_satin',
+        quantity: 1,
+        color: 'Emerald',
+        size: 'S',
+        price: satinDressPrice,
+        orderId: couponOrder.id,
+        productId: satinDress.id,
+      },
+    });
+
+    await prisma.couponUsage.upsert({
+      where: { orderId: couponOrder.id },
+      update: {
+        couponId: welcome15.id,
+        orderId: couponOrder.id,
+        userId: customer.id,
+      },
+      create: {
+        couponId: welcome15.id,
+        orderId: couponOrder.id,
+        userId: customer.id,
+      },
+    });
+
     console.log(
       'Seed complete: 3 users, 1 address, 2 categories, 3 subcategories, ' +
         '6 products, 4 product images, 2 reviews, 2 coupons, ' +
-        '2 shipping zones, 2 orders, 2 order items.',
+        '2 shipping zones, 5 orders, 5 order items, 1 coupon usage.',
     );
   } finally {
     await prisma.$disconnect();

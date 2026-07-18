@@ -6,4 +6,3 @@ url = "https://mcp.prisma.io/mcp"
 
 [mcp_servers.railway]
 url = "https://mcp.railway.com"
-required = true

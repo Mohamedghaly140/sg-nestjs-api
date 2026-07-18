@@ -4,6 +4,7 @@
     "context7@claude-plugins-official": true,
     "prisma@claude-plugins-official": true,
     "supabase@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "cloudinary@claude-plugins-official": true
   }
 }
