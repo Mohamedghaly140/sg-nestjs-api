@@ -14,7 +14,7 @@
 | **Cloudinary** | Asset storage | Product/category images, invoices; `imageId` = public_id enables deletes/transforms |
 | **Resend** | Transactional email | Order confirmations, guest claim links |
 | **class-validator + class-transformer** | Validation | DTO-level declarative validation via global `ValidationPipe` |
-| **@nestjs/swagger** | API documentation | OpenAPI generation from controller/DTO decorators; Swagger UI served at `/api/docs`; every endpoint documented per [CODING_STANDARDS.md §9](./CODING_STANDARDS.md#9-api-documentation-swagger--openapi) |
+| **@nestjs/swagger** | API documentation | OpenAPI generation from controller/DTO decorators; Swagger UI served at `/api/docs` (disabled when `NODE_ENV=production`); every endpoint documented per [CODING_STANDARDS.md §9](./CODING_STANDARDS.md#9-api-documentation-swagger--openapi) |
 | **@nestjs/throttler** | Rate limiting | Protects public endpoints (checkout, coupon validation); webhooks are signature-gated and throttle-exempt instead (see §7) |
 | **@nestjs/schedule** | Cron jobs | Expired-cart purge, unpaid-CARD-order expiry, guest-token cleanup |
 | **Pino (nestjs-pino)** | Logging | Structured JSON logs, request correlation |
@@ -123,7 +123,7 @@ sg-couture-backend/
 │   ├── migrations/
 │   └── seed.ts                   # Dev seed (categories, products, admin user)
 ├── src/
-│   ├── main.ts                   # bootstrap: prefix, versioning, pipes, cors, helmet, swagger (/api/docs)
+│   ├── main.ts                   # bootstrap: prefix, versioning, pipes, cors, helmet, swagger (/api/docs, non-production only)
 │   ├── app.module.ts
 │   ├── generated/prisma/         # Generated Prisma client (gitignored)
 │   ├── config/                   # env validation schema + typed config namespaces

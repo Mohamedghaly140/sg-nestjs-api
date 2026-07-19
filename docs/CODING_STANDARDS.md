@@ -148,7 +148,7 @@ All are validated in `config/env.validation.ts` when present. Boot currently req
 
 ## 9. API Documentation (Swagger / OpenAPI)
 
-Every completed endpoint is documented in Swagger via `@nestjs/swagger` **in the same task that implements it** — use the **`nestjs-swagger` skill** to apply and verify the decorators. The OpenAPI doc is built by `SwaggerModule` in `src/main.ts` and served at **`/api/docs`** (Phase 0 setup).
+Every completed endpoint is documented in Swagger via `@nestjs/swagger` **in the same task that implements it** — use the **`nestjs-swagger` skill** to apply and verify the decorators. The OpenAPI doc is built by `SwaggerModule` in `src/main.ts` and served at **`/api/docs`** (Phase 0 setup); it is disabled when `NODE_ENV=production`.
 
 **Controller conventions**
 

@@ -2,6 +2,12 @@
 
 > 🤖 **Claude Code:** append an entry after **every** completed task. Format: date · scope · summary · docs touched. Newest first.
 
+## 2026-07-19 — Phase 11 hardening · Disable Swagger UI in production
+
+- Gated the `setupSwagger(app)` bootstrap call in `src/main.ts` behind an environment check: Swagger UI / OpenAPI (`/api/docs`, `/api/docs-json`) is now only registered when `NODE_ENV !== 'production'`. Reuses the already-validated `app.nodeEnv` config (`src/config/configuration.ts`), read the same way as `cors.origins`. In production the docs routes return `404`, so the full API surface (endpoints, DTO schemas, auth scheme) is no longer publicly exposed.
+- `setupSwagger` in `src/common/utils/configure-app.ts` stays a pure, unconditional helper — the environment decision lives at the call site, so `configureApp`-based e2e test apps are unaffected.
+- Docs touched: this changelog, `ARCHITECTURE.md` (tech table + `main.ts` layout note), `CODING_STANDARDS.md` §9, `RUNBOOK.md` (post-deploy verification + launch checklist now expect `404` in prod), and `CLAUDE.md` Quick Facts. No schema, migration, endpoint-contract, or ADR change.
+
 ## 2026-07-18 — Docs · Complete storefront client integration guide
 
 - Completed `docs/integration/storefront/` as the frontend-facing integration guide for the web storefront and future React Native app, mirroring the admin guide's structure: `00-conventions.md` (three auth modes, guest cart identity via `cart_session` cookie / `X-Cart-Session` header, envelope, pagination, rate-limit table, storefront error-code catalog) plus module docs `01-products` through `10-orders` covering products, categories, reviews, wishlist, cart, coupon preview, shipping fee, addresses, registered/guest checkout, and order history/guest tracking/claim/self-cancel. The existing profile guide moved from `01-profile.md` to `11-profile.md` (git mv) and the folder README was rewritten with the full module table and a "not available yet" section (CARD/Geidea Phase 7, notifications Phase 9).

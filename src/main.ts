@@ -15,7 +15,10 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   app.use(cookieParser());
   configureApp(app, configService.get<string[]>('cors.origins') ?? []);
-  setupSwagger(app);
+
+  if (configService.get<string>('app.nodeEnv') !== 'production') {
+    setupSwagger(app);
+  }
 
   await app.listen(configService.get<number>('app.port') ?? 3000);
 }

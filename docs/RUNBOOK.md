@@ -69,8 +69,9 @@ build machine must run `pnpm install` (which triggers generation) before
 1. `GET {host}/api/v1/health` → `200 { app: "up", database: "up" }` (public,
    throttle-exempt; DB ping via Terminus). `503` means the database is
    unreachable — check `DATABASE_URL`/pooler first.
-2. `GET {host}/api/docs` renders Swagger UI; `GET {host}/api/docs-json`
-   returns the OpenAPI document.
+2. Swagger UI (`GET {host}/api/docs`) is **disabled in production**
+   (`NODE_ENV=production`) — expect `404`. In non-production it renders and
+   `GET {host}/api/docs-json` returns the OpenAPI document.
 3. Logs (pino, JSON in production) show no boot errors; startup fails loudly
    on env problems, so a running process means env validated.
 4. Clerk webhook: in the Clerk dashboard the endpoint must point at
@@ -139,7 +140,7 @@ maintained.
 - [ ] `CORS_ORIGINS` lists exactly the storefront + admin dashboard origins
 - [ ] `prisma migrate deploy` ran cleanly; `migrate status` shows no pending migrations
 - [ ] `/api/v1/health` returns 200 with `database: "up"`
-- [ ] `/api/docs` renders; spec audit passed (see CHANGELOG Phase 11 entries)
+- [ ] `/api/docs` returns 404 in production (Swagger disabled); spec audit passed (see CHANGELOG Phase 11 entries)
 - [ ] Single instance running; platform passes real client IPs
 - [ ] Resend configured (or the mail no-op tradeoff explicitly accepted)
 - [ ] DB backups enabled at the provider
